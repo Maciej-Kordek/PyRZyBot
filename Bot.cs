@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using TwitchLib.Client;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
@@ -12,8 +13,10 @@ namespace PyRZyBot
 
         ConnectionCredentials credentials = new ConnectionCredentials(TwitchInfo.BotName, TwitchInfo.BotToken);
         TwitchClient client;
+        List<string> Banned_Users = new List<string>();
         internal void Connect(bool isLogging)
         {
+            Banned_Users.Add("nightbot");
             var clientOptions = new ClientOptions
             {
                 MessagesAllowedInPeriod = 750,
@@ -27,18 +30,32 @@ namespace PyRZyBot
                 client.OnLog += Client_OnLog;
 
             client.OnMessageReceived += Client_OnMessageReceived;
-
+            client.OnChatCommandReceived += Client_OnChatCommandReceived;
             client.Connect();
+        }
+
+        private void Client_OnChatCommandReceived(object sender, OnChatCommandReceivedArgs e)
+        {
+            if (e.Command.ChatMessage.IsModerator || e.Command.ChatMessage.IsBroadcaster)
+            {
+                var Username = e.Command.ArgumentsAsList[0].Replace("@", "").ToLower();
+                if (e.Command.CommandText == "ban" && Banned_Users.Contains(Username) == false)
+                {
+                    Banned_Users.Add(Username);
+                }
+            }
         }
 
         private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e)
         {
-            if (e.ChatMessage.Username == "nightbot") { return; }
+            if (Banned_Users.Contains(e.ChatMessage.Username) == true) { return; }
 
             if (e.ChatMessage.Message.Contains("xD") || e.ChatMessage.Message.Contains("XD"))
             {
                 client.SendMessage(TwitchInfo.ChannelName, "xD");
             }
+
+
 
         }
 

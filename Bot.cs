@@ -24,8 +24,8 @@ namespace PyRZyBot
             Banned_Users.Add("nightbot");
             var clientOptions = new ClientOptions
             {
-                MessagesAllowedInPeriod = 750,
-                ThrottlingPeriod = TimeSpan.FromSeconds(5)
+                MessagesAllowedInPeriod = 5,
+                ThrottlingPeriod = TimeSpan.FromSeconds(3)
             };
             WebSocketClient customClient = new WebSocketClient(clientOptions);
             client = new TwitchClient(customClient);
@@ -58,29 +58,23 @@ namespace PyRZyBot
 
             if (e.ChatMessage.Message.ToLower().StartsWith("czy"))
             {
-                int x=0;
+                int x = 0;
                 var RandomValue = Random.NextDouble() * Weights.Sum();
                 for (int i = 0; i < Weights.Count; i++)
                 {
                     x += Weights[i];
-                    if(x>=RandomValue)
+                    if (x >= RandomValue)
                     {
                         client.SendMessage(TwitchInfo.ChannelName, Responces[i]);
                         return;
                     }
-
                 }
-
-
-                
             }
             else
             if (e.ChatMessage.Message.Contains("xD") || e.ChatMessage.Message.Contains("XD"))
             {
                 client.SendMessage(TwitchInfo.ChannelName, "xD");
             }
-
-
         }
 
         private void Client_OnLog(object sender, OnLogArgs e)

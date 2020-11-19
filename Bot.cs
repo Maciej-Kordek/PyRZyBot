@@ -6,6 +6,8 @@ using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
 using TwitchLib.Communication.Clients;
 using TwitchLib.Communication.Models;
+using System.Text.RegularExpressions;
+using System.Text;
 
 namespace PyRZyBot
 {
@@ -19,6 +21,7 @@ namespace PyRZyBot
         List<string> Mods = new List<string> { "kyrzy", "ananieana", "medial802", "pyrzybot" };
         List<string> Responces = new List<string> { "Tak", "Nie", "xD", "Oj nie wiem nie wiem", "Paaaaanie, bota o to pytasz? litości... :roll_eyes:" };
         List<int> Weights = new List<int> { 8, 8, 1, 3, 1 };
+        string _dotDotDotPattern = @"^(\.)+$";
 
         internal void Connect(bool isLogging)
         {
@@ -47,12 +50,12 @@ namespace PyRZyBot
                 if (e.Command.CommandText == "ban")
                     if (Banned_Users.Contains(Username.ToLower()) == false)
                     {
-                        if(Mods.Contains(Username.ToLower())== true)
+                        if (Mods.Contains(Username.ToLower()) == true)
                         {
                             client.SendMessage(TwitchInfo.ChannelName, "Nie można zbanować moderatora!");
                             return;
                         }
-                        
+
                         Banned_Users.Add(Username.ToLower());
                         client.SendMessage(TwitchInfo.ChannelName, $"Zbanowano {Username} :partying:");
                     }
@@ -85,6 +88,15 @@ namespace PyRZyBot
                         return;
                     }
                 }
+            }
+            else
+            if (Regex.Match(e.ChatMessage.Message, _dotDotDotPattern).Success)
+            {
+                var length = e.ChatMessage.Message.Length <= 6 ? e.ChatMessage.Message.Length : 6;
+                var sb = new StringBuilder().Insert(0, "kropka ", length);
+                sb.Append($"do Ciebie też {e.ChatMessage.Username} :rage:");
+
+                client.SendMessage(TwitchInfo.ChannelName, sb.ToString());
             }
             else
             if (e.ChatMessage.Message.Contains("xD") || e.ChatMessage.Message.Contains("XD"))

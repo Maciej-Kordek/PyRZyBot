@@ -15,13 +15,13 @@ namespace PyRZyBot
         ConnectionCredentials credentials = new ConnectionCredentials(TwitchInfo.BotName, TwitchInfo.BotToken);
         TwitchClient client;
         Random Random = new Random();
-        List<string> Banned_Users = new List<string>();
+        List<string> Banned_Users = new List<string> { "nightbot" };
+        List<string> Mods = new List<string> { "kyrzy", "ananieana", "medial802", "pyrzybot" };
         List<string> Responces = new List<string> { "Tak", "Nie", "xD", "Oj nie wiem nie wiem", "Paaaaanie, bota o to pytasz? litości... :roll_eyes:" };
         List<int> Weights = new List<int> { 8, 8, 1, 3, 1 };
 
         internal void Connect(bool isLogging)
         {
-            Banned_Users.Add("nightbot");
             var clientOptions = new ClientOptions
             {
                 MessagesAllowedInPeriod = 5,
@@ -44,13 +44,30 @@ namespace PyRZyBot
             if (e.Command.ChatMessage.IsModerator || e.Command.ChatMessage.IsBroadcaster)
             {
                 var Username = e.Command.ArgumentsAsList[0].Replace("@", "");
-                if (e.Command.CommandText == "ban" && Banned_Users.Contains(Username.ToLower()) == false)
-                {
-                    Banned_Users.Add(Username.ToLower());
-                    client.SendMessage(TwitchInfo.ChannelName, $"Banned {Username} :partying:");
-                }
+                if (e.Command.CommandText == "ban")
+                    if (Banned_Users.Contains(Username.ToLower()) == false)
+                    {
+                        if(Mods.Contains(Username.ToLower())== true)
+                        {
+                            client.SendMessage(TwitchInfo.ChannelName, "Nie można zbanować moderatora!");
+                            return;
+                        }
+                        
+                        Banned_Users.Add(Username.ToLower());
+                        client.SendMessage(TwitchInfo.ChannelName, $"Zbanowano {Username} :partying:");
+                    }
+                    else { client.SendMessage(TwitchInfo.ChannelName, $"{Username} już jest zbanowany!"); }
+
+                if (e.Command.CommandText == "unban")
+                    if (Banned_Users.Contains(Username.ToLower()) == true)
+                    {
+                        Banned_Users.Remove(Username.ToLower());
+                        client.SendMessage(TwitchInfo.ChannelName, $"Odbanowano {Username} :frowning:");
+                    }
+                    else { client.SendMessage(TwitchInfo.ChannelName, $"{Username} nie jest zbanowany!"); }
             }
         }
+
 
         private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e)
         {
@@ -58,12 +75,11 @@ namespace PyRZyBot
 
             if (e.ChatMessage.Message.ToLower().StartsWith("czy"))
             {
-                int x = 0;
                 var RandomValue = Random.NextDouble() * Weights.Sum();
                 for (int i = 0; i < Weights.Count; i++)
                 {
-                    x += Weights[i];
-                    if (x >= RandomValue)
+                    RandomValue -= Weights[i];
+                    if (RandomValue <= 0)
                     {
                         client.SendMessage(TwitchInfo.ChannelName, Responces[i]);
                         return;
@@ -76,7 +92,6 @@ namespace PyRZyBot
                 client.SendMessage(TwitchInfo.ChannelName, "xD");
             }
         }
-
         private void Client_OnLog(object sender, OnLogArgs e)
         {
             Console.WriteLine(e.Data);

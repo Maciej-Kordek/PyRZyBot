@@ -6,13 +6,13 @@ namespace PyRZyBot
     {
         static void Main(string[] args)
         {
-            Bot MedBot = new Bot();
+            Bot PyRZyBot = new Bot();
 
-            MedBot.Connect(true);
-
+            PyRZyBot.Connect(true);
+            
             Console.ReadLine();
 
-            MedBot.Disconnect();
+            PyRZyBot.Disconnect();
         }
     }
 }

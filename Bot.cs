@@ -13,18 +13,18 @@ namespace PyRZyBot
 {
     internal class Bot
     {
-
-        ConnectionCredentials credentials = new ConnectionCredentials(TwitchInfo.BotName, TwitchInfo.BotToken);
         TwitchClient client;
-        Random Random = new Random();
         List<string> Banned_Users = new List<string> { "nightbot" };
         List<string> Mods = new List<string> { "kyrzy", "ananieana", "medial802", "pyrzybot" };
         List<string> Responces = new List<string> { "Tak", "Nie", "xD", "Oj nie wiem nie wiem", "Paaaaanie, bota o to pytasz? litości... :roll_eyes:" };
         List<int> Weights = new List<int> { 8, 8, 1, 3, 1 };
+        Dictionary<string, int> tldrCounter = new Dictionary<string, int>();
+        Dictionary<string, string> simpleCommands = new Dictionary<string, string>();
         string _dotDotDotPattern = @"^(\.)+$";
 
         internal void Connect(bool isLogging)
         {
+            ConnectionCredentials credentials = new ConnectionCredentials(TwitchInfo.BotName, TwitchInfo.BotToken);
             var clientOptions = new ClientOptions
             {
                 MessagesAllowedInPeriod = 5,
@@ -46,7 +46,11 @@ namespace PyRZyBot
         {
             if (e.Command.ChatMessage.IsModerator || e.Command.ChatMessage.IsBroadcaster)
             {
-                var Username = e.Command.ArgumentsAsList[0].Replace("@", "");
+                var Username = string.Empty;
+                if (e.Command.ArgumentsAsList.Count > 0)
+                {
+                    Username = e.Command.ArgumentsAsList[0].Replace("@", "");
+                }
                 if (e.Command.CommandText == "ban")
                     if (Banned_Users.Contains(Username.ToLower()) == false)
                     {
@@ -68,6 +72,29 @@ namespace PyRZyBot
                         client.SendMessage(TwitchInfo.ChannelName, $"Odbanowano {Username} :frowning:");
                     }
                     else { client.SendMessage(TwitchInfo.ChannelName, $"{Username} nie jest zbanowany!"); }
+
+                if (e.Command.CommandText == "command")
+                {
+                    if (e.Command.ArgumentsAsList[0] == "add"
+                        && e.Command.ArgumentsAsList.Count > 2
+                        && !simpleCommands.ContainsKey(e.Command.ArgumentsAsList[1].ToLower()))
+                    {
+                        simpleCommands.Add(e.Command.ArgumentsAsList[1].ToLower(), e.Command.ArgumentsAsString.Substring(4 + e.Command.ArgumentsAsList[1].Length));
+                        client.SendMessage(TwitchInfo.ChannelName, $"Komenda {e.Command.ArgumentsAsList[1]} została dodana.");
+                    }
+                    else
+                    if (e.Command.ArgumentsAsList[0] == "delete"
+                         && e.Command.ArgumentsAsList.Count > 1
+                         && simpleCommands.ContainsKey(e.Command.ArgumentsAsList[1].ToLower()))
+                    {
+                        simpleCommands.Remove(e.Command.ArgumentsAsList[1].ToLower());
+                        client.SendMessage(TwitchInfo.ChannelName, $"Komenda {e.Command.ArgumentsAsList[1]} została usunięta.");
+                    }
+                }
+                if (simpleCommands.ContainsKey(e.Command.CommandText.ToLower()))
+                {
+                    client.SendMessage(TwitchInfo.ChannelName, simpleCommands[e.Command.CommandText.ToLower()]);
+                }
             }
         }
 
@@ -76,8 +103,26 @@ namespace PyRZyBot
         {
             if (Banned_Users.Contains(e.ChatMessage.Username) == true) { return; }
 
-            if (e.ChatMessage.Message.ToLower().StartsWith("czy"))
+            if (e.ChatMessage.Message.Length > 200)
             {
+                if (!tldrCounter.ContainsKey(e.ChatMessage.Username))
+                {
+                    tldrCounter.Add(e.ChatMessage.Username, 1);
+                }
+                else
+                {
+                    tldrCounter[e.ChatMessage.Username]++;
+                }
+                var output = "Duuuuuud, Don't ściana tekstu me :rage:";
+                if (tldrCounter[e.ChatMessage.Username] > 2)
+                {
+                    output += $" to już {tldrCounter[e.ChatMessage.Username]} raz!";
+                }
+                client.SendMessage(TwitchInfo.ChannelName, output);
+            }
+            else if (e.ChatMessage.Message.ToLower().StartsWith("czy"))
+            {
+                Random Random = new Random();
                 var RandomValue = Random.NextDouble() * Weights.Sum();
                 for (int i = 0; i < Weights.Count; i++)
                 {
@@ -89,8 +134,7 @@ namespace PyRZyBot
                     }
                 }
             }
-            else
-            if (Regex.Match(e.ChatMessage.Message, _dotDotDotPattern).Success)
+            else if (Regex.Match(e.ChatMessage.Message, _dotDotDotPattern).Success)
             {
                 var length = e.ChatMessage.Message.Length <= 6 ? e.ChatMessage.Message.Length : 6;
                 var sb = new StringBuilder().Insert(0, "kropka ", length);
@@ -98,8 +142,7 @@ namespace PyRZyBot
 
                 client.SendMessage(TwitchInfo.ChannelName, sb.ToString());
             }
-            else
-            if (e.ChatMessage.Message.Contains("xD") || e.ChatMessage.Message.Contains("XD"))
+            else if (e.ChatMessage.Message.Contains("xD") || e.ChatMessage.Message.Contains("XD"))
             {
                 client.SendMessage(TwitchInfo.ChannelName, "xD");
             }

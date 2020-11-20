@@ -128,10 +128,10 @@ namespace PyRZyBot
                         client.SendMessage(TwitchInfo.ChannelName, $"Komenda !{e.Command.ArgumentsAsList[1]} została usunięta.");
                     }
                 }
-                if (simpleCommands.ContainsKey(e.Command.CommandText.ToLower()))
-                {
-                    client.SendMessage(TwitchInfo.ChannelName, simpleCommands[e.Command.CommandText.ToLower()]);
-                }
+            }
+            if (simpleCommands.ContainsKey(e.Command.CommandText.ToLower()))
+            {
+                client.SendMessage(TwitchInfo.ChannelName, simpleCommands[e.Command.CommandText.ToLower()]);
             }
         }
 
@@ -246,6 +246,8 @@ namespace PyRZyBot
 
         internal void Disconnect()
         {
+            czyTimer.Stop();
+            czyTimer.Dispose();
             DSCTimer.Stop();
             DSCTimer.Dispose();
             var saveFileTemplate = new SaveFileTemplate

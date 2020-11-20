@@ -8,22 +8,40 @@ using TwitchLib.Communication.Clients;
 using TwitchLib.Communication.Models;
 using System.Text.RegularExpressions;
 using System.Text;
+using Newtonsoft.Json;
+using System.IO;
 
 namespace PyRZyBot
 {
     internal class Bot
     {
         TwitchClient client;
-        List<string> Banned_Users = new List<string> { "nightbot" };
-        List<string> Mods = new List<string> { "kyrzy", "ananieana", "medial802", "pyrzybot" };
-        List<string> Responces = new List<string> { "Tak", "Nie", "xD", "Oj nie wiem nie wiem", "Paaaaanie, bota o to pytasz? litości... :roll_eyes:" };
-        List<int> Weights = new List<int> { 8, 8, 1, 3, 1 };
-        Dictionary<string, int> tldrCounter = new Dictionary<string, int>();
-        Dictionary<string, string> simpleCommands = new Dictionary<string, string>();
+        List<string> Banned_Users;
+        List<string> Mods;
+        List<string> Responces;
+        List<int> Weights;
+        Dictionary<string, int> tldrCounter;
+        Dictionary<string, string> simpleCommands;
         string _dotDotDotPattern = @"^(\.)+$";
 
         internal void Connect(bool isLogging)
         {
+            var json = string.Empty;
+            using (var sr = new StreamReader(Environment.CurrentDirectory + @"\path.txt"))
+            {
+                json = sr.ReadToEnd();
+            }
+            if (!string.IsNullOrEmpty(json))
+            {
+                var savefile = JsonConvert.DeserializeObject<SaveFileTemplate>(json);
+                Banned_Users = savefile.Banned_Users;
+                Mods = savefile.Mods;
+                Responces = savefile.Responces;
+                Weights = savefile.Weights;
+                tldrCounter = savefile.tldrCounter;
+                simpleCommands = savefile.simpleCommands;
+            }
+
             ConnectionCredentials credentials = new ConnectionCredentials(TwitchInfo.BotName, TwitchInfo.BotToken);
             var clientOptions = new ClientOptions
             {
@@ -154,6 +172,19 @@ namespace PyRZyBot
 
         internal void Disconnect()
         {
+            var saveFileTemplate = new SaveFileTemplate
+            {
+                Banned_Users = Banned_Users,
+                Mods = Mods,
+                Responces = Responces,
+                Weights = Weights,
+                tldrCounter = tldrCounter,
+                simpleCommands = simpleCommands
+            };
+
+            string json = JsonConvert.SerializeObject(saveFileTemplate);
+
+            System.IO.File.WriteAllText(Environment.CurrentDirectory+ @"\path.txt", json);
             client.Disconnect();
         }
     }

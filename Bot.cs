@@ -22,10 +22,12 @@ namespace PyRZyBot
         List<string> Responces;
         List<int> Weights;
         Dictionary<string, int> tldrCounter;
+        Dictionary<string, int> czySpam = new Dictionary<string, int>();
         Dictionary<string, string> simpleCommands;
         string _dotDotDotPattern = @"^(\.)+$";
         DateTime LSM = DateTime.Now;
-        private static System.Timers.Timer DSCTimer;
+        private System.Timers.Timer DSCTimer;
+        private System.Timers.Timer czyTimer;
 
         internal void Connect(bool isLogging)
         {
@@ -150,15 +152,41 @@ namespace PyRZyBot
                 {
                     tldrCounter[e.ChatMessage.Username]++;
                 }
-                var output = "Duuuuuud, Don't ściana tekstu me :rage:";
+                var output = "Duuuuuud, don't ściana tekstu me :rage:";
                 if (tldrCounter[e.ChatMessage.Username] > 2)
                 {
                     output += $" to już {tldrCounter[e.ChatMessage.Username]} raz!";
                 }
                 client.SendMessage(TwitchInfo.ChannelName, output);
             }
+            else if (e.ChatMessage.Message.ToLower().Contains("siema pyrzy") || e.ChatMessage.Message.ToLower().Contains("cześć pyrzy") || e.ChatMessage.Message.ToLower().Contains("czesc pyrzy"))
+            {
+                client.SendMessage(TwitchInfo.ChannelName, $"Cześć {e.ChatMessage.Username}");
+                return;
+            }
             else if (e.ChatMessage.Message.ToLower().StartsWith("czy"))
             {
+                if (!czySpam.ContainsKey(e.ChatMessage.Username))
+                {
+                    czySpam.Add(e.ChatMessage.Username, 1);
+                }
+                else
+                {
+                    czySpam[e.ChatMessage.Username]++;
+                }
+                if (czySpam[e.ChatMessage.Username] > 7)
+                {
+                    return;
+                }
+                if (czySpam[e.ChatMessage.Username] > 5)
+                {
+                    var digits = new[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+                    var Username = e.ChatMessage.Username;
+
+                    client.SendMessage(TwitchInfo.ChannelName, $"Przestań zadawać tyle pytań {Username.TrimEnd(digits)} :rage:");
+                    czySpam[e.ChatMessage.Username]++;
+                    return;
+                }
                 Random Random = new Random();
                 var RandomValue = Random.NextDouble() * Weights.Sum();
                 for (int i = 0; i < Weights.Count; i++)
@@ -192,13 +220,26 @@ namespace PyRZyBot
 
         private void SetTimer()
         {
+            czyTimer = new System.Timers.Timer(60000);
+            czyTimer.Elapsed += czyEvent;
+            czyTimer.AutoReset = true;
+            czyTimer.Enabled = true;
             DSCTimer = new System.Timers.Timer(1200000);
-            DSCTimer.Elapsed += OnTimedEvent;
+            DSCTimer.Elapsed += DSCEvent;
             DSCTimer.AutoReset = true;
             DSCTimer.Enabled = true;
         }
 
-        private void OnTimedEvent(Object source, ElapsedEventArgs e)
+        private void czyEvent(object source, ElapsedEventArgs e)
+        {
+            List<string> KeyList = new List<string>(czySpam.Keys);
+            foreach (var key in KeyList)
+            {
+                czySpam[key] = czySpam[key] > 0 ? czySpam[key] - 1 : 0;
+            }
+        }
+
+        private void DSCEvent(Object source, ElapsedEventArgs e)
         {
             client.SendMessage(TwitchInfo.ChannelName, " Chcesz wiedzieć, kiedy będzie kolejny stream? zapraszam na Discorda: https://discord.gg/jtGZQFa");
         }

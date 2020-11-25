@@ -9,7 +9,8 @@ namespace PyRZyBot
             Bot PyRZyBot = new Bot();
 
             PyRZyBot.Connect(true);
-            
+
+            Console.WriteLine("v1.2");
             Console.ReadLine();
 
             PyRZyBot.Disconnect();

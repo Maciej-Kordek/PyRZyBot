@@ -12,5 +12,6 @@ namespace PyRZyBot
         public List<int> Weights;
         public Dictionary<string, int> tldrCounter;
         public Dictionary<string, string> simpleCommands;
+        public List<string> Grafik;
     }
 }

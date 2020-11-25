@@ -17,23 +17,44 @@ namespace PyRZyBot
     internal class Bot
     {
         TwitchClient client;
-        List<string> Banned_Users;
         List<string> Mods;
-        List<string> Responces;
+        List<string> Banned_Users;
         List<int> Weights;
-        List<string> PyRZywitania = new List<string> { "siema pyrzy", "cześć pyrzy", "czesc pyrzy" };
+        List<string> Responces;
+        List<string> Grafik;
         Dictionary<string, int> tldrCounter;
-        Dictionary<string, int> czySpam = new Dictionary<string, int>();
         Dictionary<string, string> simpleCommands;
-        string _dotDotDotPattern = @"^(\.)+$";
+        Dictionary<string, int> czySpam = new Dictionary<string, int>();
+
+        char[] digits = new[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '.' };
+        private List<string> Dzien = new List<string>()
+        {
+            {"Poniedziałek"},
+            {"Wtorek"},
+            {"Środa"},
+            {"Czwartek"},
+            {"Piątek"},
+            {"Sobota"},
+            {"Niedziela"},
+        };
+
         DateTime LSM = DateTime.Now;
         private Timer DSCTimer;
         private Timer CzyTimer;
 
+        string _dotDotDotPattern = @"^(\.)+$";
+
+        public static bool IsUsername(string username)
+        {
+            string pattern = @"^[a-zA-Z0-9]{3,24}";
+            Regex regex = new Regex(pattern);
+            return regex.IsMatch(username);
+        }
+
         internal void Connect(bool isLogging)
         {
             var json = string.Empty;
-            using (var sr = new StreamReader(Environment.CurrentDirectory + @"\path.txt"))
+            using (var sr = new StreamReader(Environment.CurrentDirectory + @"\path.json"))
             {
                 json = sr.ReadToEnd();
             }
@@ -46,6 +67,7 @@ namespace PyRZyBot
                 Weights = savefile.Weights;
                 tldrCounter = savefile.tldrCounter;
                 simpleCommands = savefile.simpleCommands;
+                Grafik = savefile.Grafik;
             }
 
             ConnectionCredentials credentials = new ConnectionCredentials(TwitchInfo.BotName, TwitchInfo.BotToken);
@@ -75,27 +97,103 @@ namespace PyRZyBot
                 return;
             }
 
+            switch (e.Command.CommandText.ToLower())
+            {
+                case "grafik":
+
+                    for (int i = 0; i < Grafik.Count(); i++)
+                        client.SendMessage(TwitchInfo.ChannelName, Grafik[i]);
+
+                    break;
+                case "commands":
+
+                    String Message = "Dostępne komendy: ";
+                    foreach (string Key in simpleCommands.Keys)
+                        Message += $"!{Key} ";
+
+                    Message += "!grafik ";
+                    if (e.Command.ChatMessage.IsModerator || e.Command.ChatMessage.IsBroadcaster)
+                        Message += "!upgrafik !ban !unban !command add/delete";
+
+                    client.SendMessage(TwitchInfo.ChannelName, Message);
+
+                    break;
+            }
+
             if (e.Command.ChatMessage.IsModerator || e.Command.ChatMessage.IsBroadcaster)
             {
                 string Username = string.Empty;
-                switch (e.Command.CommandText)
+                switch (e.Command.CommandText.ToLower())
                 {
+                    case "upgrafik":
+
+                        try
+                        {
+                            if (e.Command.ArgumentsAsList.Count == 0)
+                            {
+                                client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !upgrafik (dni 1-7) gry1;gry2;... Nie podanie dni skutkuje dniami Pn,Śr,Pt");
+                                return;
+                            }
+                            int L_Streamow = 3, j = -2;
+                            var IsNumeric = int.TryParse(e.Command.ArgumentsAsList[0], out _);
+
+                            if (IsNumeric)
+                                L_Streamow = e.Command.ArgumentsAsList[0].Count();
+
+                            List<string> Gry = e.Command.ArgumentsAsString.Split(";").ToList();
+                            List<string> Test_Grafik = new List<string>();
+                            Gry[0] = Gry[0].TrimStart(digits);
+
+                            if (Gry.Count() != L_Streamow)
+                            {
+                                client.SendMessage(TwitchInfo.ChannelName, "Niezgodna liczba dni i gier!");
+                                return;
+                            }
+                            string Gra = string.Empty;
+                            string Argument = string.Empty;
+                            for (int i = 1; i <= L_Streamow; i++)
+                            {
+                                if (IsNumeric)
+                                {
+                                    j = Convert.ToInt32(e.Command.ArgumentsAsString.Substring(i - 1, 1)) - 1;
+                                    if (j < 0 || j > 6)
+                                    {
+                                        client.SendMessage(TwitchInfo.ChannelName, "Przy podawaniu dni, liczby muszą być w zakresie 1-7!");
+                                        return;
+                                    }
+                                }
+                                else { j += 2; }
+
+                                Gra = Gry[i - 1].Trim();
+                                Test_Grafik.Add($"{Dzien[j]}: {Gra}");
+                            }
+                            Grafik.Clear();
+                            Grafik = Test_Grafik;
+                            client.SendMessage(TwitchInfo.ChannelName, "Zaktualizowano grafik!");
+                        }
+                        catch (Exception err)
+                        {
+                            Console.WriteLine(err.Message);
+                            client.SendMessage(TwitchInfo.ChannelName, "Coś poszło nie tak :/");
+                        }
+
+                        break;
                     case "ban":
 
                         if (e.Command.ArgumentsAsList.Count == 0)
                         {
-                            client.SendMessage(TwitchInfo.ChannelName, "Musisz podać nazwę użytkownika!");
+                            client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !ban (Użytkownik)");
                             return;
                         }
                         Username = e.Command.ArgumentsAsList[0].Replace("@", "");
-                        if (Username.Length < 4)
+                        if (!IsUsername(Username))
                         {
                             client.SendMessage(TwitchInfo.ChannelName, "Musisz podać poprawną nazwę użytkownika!");
                             return;
                         }
-                        if (Banned_Users.Contains(Username.ToLower()) == false)
+                        if (!Banned_Users.Contains(Username.ToLower()))
                         {
-                            if (Mods.Contains(Username.ToLower()) == true)
+                            if (Mods.Contains(Username.ToLower()))
                             {
                                 client.SendMessage(TwitchInfo.ChannelName, "Nie można zbanować moderatora!");
                                 return;
@@ -111,16 +209,16 @@ namespace PyRZyBot
 
                         if (e.Command.ArgumentsAsList.Count == 0)
                         {
-                            client.SendMessage(TwitchInfo.ChannelName, "Musisz podać nazwę użytkownika!");
+                            client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !unban (Użytkownik)");
                             return;
                         }
                         Username = e.Command.ArgumentsAsList[0].Replace("@", "");
-                        if (Username.Length < 4)
+                        if (!IsUsername(Username))
                         {
                             client.SendMessage(TwitchInfo.ChannelName, "Musisz podać poprawną nazwę użytkownika!");
                             return;
                         }
-                        if (Banned_Users.Contains(Username.ToLower()) == true)
+                        if (Banned_Users.Contains(Username.ToLower()))
                         {
                             Banned_Users.Remove(Username.ToLower());
                             client.SendMessage(TwitchInfo.ChannelName, $"Odbanowano {Username} :frowning:");
@@ -143,7 +241,7 @@ namespace PyRZyBot
 
                                 if (e.Command.ArgumentsAsList.Count < 3)
                                 {
-                                    client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !command add (Wywołanie) (Treść)");
+                                    client.SendMessage(TwitchInfo.ChannelName, "Musisz podać nazwę i treść komendy!");
                                     return;
                                 }
                                 if (simpleCommands.ContainsKey(e.Command.ArgumentsAsList[1].ToLower()))
@@ -159,7 +257,7 @@ namespace PyRZyBot
 
                                 if (e.Command.ArgumentsAsList.Count != 2)
                                 {
-                                    client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !command delete (Wywołanie)");
+                                    client.SendMessage(TwitchInfo.ChannelName, "Musisz podać nazwę komendy!");
                                     return;
                                 }
                                 if (!simpleCommands.ContainsKey(e.Command.ArgumentsAsList[1].ToLower()))
@@ -171,12 +269,12 @@ namespace PyRZyBot
                                 client.SendMessage(TwitchInfo.ChannelName, $"Komenda !{e.Command.ArgumentsAsList[1]} została usunięta.");
 
                                 break;
+                            default:
+
+                                client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !command add (Nazwa) (Treść)");
+                                client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !command delete (Nazwa)");
+                                return;
                         }
-                        break;
-                    case "v":
-
-                        client.SendMessage(TwitchInfo.ChannelName, "v1.0");
-
                         break;
                 }
             }
@@ -185,8 +283,6 @@ namespace PyRZyBot
 
         private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e)
         {
-            if (Banned_Users.Contains(e.ChatMessage.Username)) { return; }
-            var digits = new[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
             var Username = e.ChatMessage.Username;
 
             if (e.ChatMessage.Message.Length > 200)
@@ -202,6 +298,7 @@ namespace PyRZyBot
                 client.SendMessage(TwitchInfo.ChannelName, output);
                 return;
             }
+            if (Banned_Users.Contains(e.ChatMessage.Username)) { return; }
 
             if (e.ChatMessage.Message.ToLower().Contains("siema pyrzy") || e.ChatMessage.Message.ToLower().Contains("cześć pyrzy") || e.ChatMessage.Message.ToLower().Contains("czesc pyrzy"))
             {
@@ -212,13 +309,13 @@ namespace PyRZyBot
             if (LSM.AddSeconds(5) > DateTime.Now) { return; }
 
             if (e.ChatMessage.Message.ToLower().StartsWith("czy "))
-            {                
+            {
                 if (!czySpam.ContainsKey(e.ChatMessage.Username))
                     czySpam.Add(e.ChatMessage.Username, 0);
 
                 if (czySpam[e.ChatMessage.Username] > 7) { return; }
 
-                czySpam[e.ChatMessage.Username]++;                                
+                czySpam[e.ChatMessage.Username]++;
                 LSM = DateTime.Now;
                 if (czySpam[e.ChatMessage.Username] > 5)
                 {
@@ -232,7 +329,7 @@ namespace PyRZyBot
                 {
                     RandomValue -= Weights[i];
                     if (RandomValue <= 0)
-                    {                        
+                    {
                         client.SendMessage(TwitchInfo.ChannelName, Responces[i]);
                         return;
                     }
@@ -265,11 +362,11 @@ namespace PyRZyBot
 
         private void SetTimer()
         {
-            CzyTimer = new System.Timers.Timer(120000);
+            CzyTimer = new Timer(120000);
             CzyTimer.Elapsed += CzyEvent;
             CzyTimer.AutoReset = true;
             CzyTimer.Enabled = true;
-            DSCTimer = new System.Timers.Timer(1200000);
+            DSCTimer = new Timer(1200000);
             DSCTimer.Elapsed += DSCEvent;
             DSCTimer.AutoReset = true;
             DSCTimer.Enabled = true;
@@ -286,7 +383,7 @@ namespace PyRZyBot
 
         private void DSCEvent(Object source, ElapsedEventArgs e)
         {
-            client.SendMessage(TwitchInfo.ChannelName, " Chcesz wiedzieć, kiedy będzie kolejny stream? zapraszam na Discorda: https://discord.gg/jtGZQFa");
+            client.SendMessage(TwitchInfo.ChannelName, "Chcesz wiedzieć, kiedy będzie kolejny stream? zapraszam na Discorda: https://discord.gg/jtGZQFa");
         }
 
         internal void Disconnect()
@@ -302,12 +399,13 @@ namespace PyRZyBot
                 Responces = Responces,
                 Weights = Weights,
                 tldrCounter = tldrCounter,
-                simpleCommands = simpleCommands
+                simpleCommands = simpleCommands,
+                Grafik = Grafik
             };
 
             string json = JsonConvert.SerializeObject(saveFileTemplate);
 
-            System.IO.File.WriteAllText(Environment.CurrentDirectory + @"\path.txt", json);
+            System.IO.File.WriteAllText(Environment.CurrentDirectory + @"\path.json", json);
             client.Disconnect();
         }
     }

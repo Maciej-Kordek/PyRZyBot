@@ -11,6 +11,8 @@ using System.Text.RegularExpressions;
 using System.Text;
 using Newtonsoft.Json;
 using System.IO;
+using TwitchLib.Api;
+using System.Threading.Tasks;
 
 namespace PyRZyBot
 {
@@ -41,6 +43,11 @@ namespace PyRZyBot
         DateTime LSM = DateTime.Now;
         private Timer DSCTimer;
         private Timer CzyTimer;
+
+        private static TwitchAPI API;
+
+        string Title;
+        string Game;
 
         string _dotDotDotPattern = @"^(\.)+$";
 
@@ -87,6 +94,13 @@ namespace PyRZyBot
             client.OnChatCommandReceived += Client_OnChatCommandReceived;
             client.Connect();
             SetTimer();
+
+            API = new TwitchAPI();
+            API.Settings.ClientId = TwitchInfo.ClientID;
+            API.Settings.AccessToken = TwitchInfo.AccessToken;
+            var ChannelInfo = API.V5.Channels.GetChannelAsync(API.Settings.AccessToken);
+            Game = ChannelInfo.Result.Game;
+            Title = ChannelInfo.Result.Status;
         }
 
         private void Client_OnChatCommandReceived(object sender, OnChatCommandReceivedArgs e)
@@ -101,37 +115,15 @@ namespace PyRZyBot
             {
                 case "grafik":
 
-                    for (int i = 0; i < Grafik.Count(); i++)
-                        client.SendMessage(TwitchInfo.ChannelName, Grafik[i]);
-
-                    break;
-                case "commands":
-
-                    String Message = "Dostępne komendy: ";
-                    foreach (string Key in simpleCommands.Keys)
-                        Message += $"!{Key} ";
-
-                    Message += "!grafik ";
-                    if (e.Command.ChatMessage.IsModerator || e.Command.ChatMessage.IsBroadcaster)
-                        Message += "!upgrafik !ban !unban !command add/delete";
-
-                    client.SendMessage(TwitchInfo.ChannelName, Message);
-
-                    break;
-            }
-
-            if (e.Command.ChatMessage.IsModerator || e.Command.ChatMessage.IsBroadcaster)
-            {
-                string Username = string.Empty;
-                switch (e.Command.CommandText.ToLower())
-                {
-                    case "upgrafik":
-
+                    if ((e.Command.ChatMessage.IsBroadcaster || e.Command.ChatMessage.IsModerator) && e.Command.ArgumentsAsList.Count() != 0)
+                    {
                         try
                         {
-                            if (e.Command.ArgumentsAsList.Count == 0)
+                            if (e.Command.ArgumentsAsList[0].ToLower() == "c")
                             {
-                                client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !upgrafik (dni 1-7) gry1;gry2;... Nie podanie dni skutkuje dniami Pn,Śr,Pt");
+                                Grafik.Clear();
+                                Grafik.Add("Grafik jest w przygotowaniu.");
+                                client.SendMessage(TwitchInfo.ChannelName, "Wyczyszczono grafik!");
                                 return;
                             }
                             int L_Streamow = 3, j = -2;
@@ -176,8 +168,60 @@ namespace PyRZyBot
                             Console.WriteLine(err.Message);
                             client.SendMessage(TwitchInfo.ChannelName, "Coś poszło nie tak :/");
                         }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < Grafik.Count(); i++)
+                            client.SendMessage(TwitchInfo.ChannelName, Grafik[i]);
+                    }
 
-                        break;
+                    break;
+                case "game":
+                    {
+                        if ((e.Command.ChatMessage.IsBroadcaster || e.Command.ChatMessage.IsModerator) && e.Command.ArgumentsAsList.Count() != 0)
+                        {
+                            Game = e.Command.ArgumentsAsString;
+                            var t = Task.Run(async () => { await API.V5.Channels.UpdateChannelAsync(TwitchInfo.ChannelID, Title, Game); });
+                            t.Wait();
+                            client.SendMessage(TwitchInfo.ChannelName, $"Zmieniono grę na: {Game}");
+                            return;
+                        }
+                        client.SendMessage(TwitchInfo.ChannelName, $"Obecna gra: {Game}");
+                    }
+                    break;
+                case "title":
+                    {
+                        if ((e.Command.ChatMessage.IsBroadcaster || e.Command.ChatMessage.IsModerator) && e.Command.ArgumentsAsList.Count() != 0)
+                        {
+                            Title = e.Command.ArgumentsAsString;
+                            var t = Task.Run(async () => { await API.V5.Channels.UpdateChannelAsync(TwitchInfo.ChannelID, Title, Game); });
+                            t.Wait();
+                            client.SendMessage(TwitchInfo.ChannelName, $"Zmieniono tytuł na: {Title}");
+                            return;
+                        }
+                        client.SendMessage(TwitchInfo.ChannelName, $"Obecny tytuł: {Title}");
+                    }
+                    break;
+                case "commands":
+
+                    String Message = "Dostępne komendy: ";
+                    foreach (string Key in simpleCommands.Keys)
+                        Message += $"!{Key} ";
+
+                    Message += "!grafik !title !game";
+                    if (e.Command.ChatMessage.IsModerator || e.Command.ChatMessage.IsBroadcaster)
+                        Message += "!ban !unban !command add/delete";
+
+                    client.SendMessage(TwitchInfo.ChannelName, Message);
+
+                    break;
+            }
+
+            if (e.Command.ChatMessage.IsModerator || e.Command.ChatMessage.IsBroadcaster)
+            {
+                string Username = string.Empty;
+                switch (e.Command.CommandText.ToLower())
+                {
                     case "ban":
 
                         if (e.Command.ArgumentsAsList.Count == 0)
@@ -349,6 +393,9 @@ namespace PyRZyBot
 
             if (e.ChatMessage.Message.Contains("xD") || e.ChatMessage.Message.Contains("XD"))
             {
+                Random Random = new Random();
+                double R = Random.NextDouble();
+                if (R <= 0.9) { return; }
                 LSM = DateTime.Now;
                 client.SendMessage(TwitchInfo.ChannelName, "xD");
                 return;

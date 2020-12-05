@@ -556,9 +556,14 @@ namespace PyRZyBot
             if (e.ChatMessage.Message.Contains("xD") || e.ChatMessage.Message.Contains("XD"))
             {
                 Random Random = new Random();
-                int RandomValue = Random.Next(1, 11);
-                if (RandomValue <= 0.8) { return; }
+                int RandomValue = Random.Next(1, 101);
+                if (RandomValue >= 20) { return; }
                 LSM = DateTime.Now;
+                if (Username == "ananieana" && RandomValue == 1)
+                {
+                    client.SendMessage(TwitchInfo.ChannelName, "UwU");
+                    return;
+                }
                 client.SendMessage(TwitchInfo.ChannelName, "xD");
             }
         }

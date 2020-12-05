@@ -24,6 +24,7 @@ namespace PyRZyBot
         List<int> Weights;
         List<string> Responces;
         List<string> Grafik;
+        Dictionary<string, string> Mistakes;
         Dictionary<string, int> tldrCounter;
         Dictionary<string, string> simpleCommands;
         Dictionary<string, int> czySpam = new Dictionary<string, int>();
@@ -46,8 +47,12 @@ namespace PyRZyBot
 
         private static TwitchAPI API;
 
-        string Title;
         string Game;
+        string Title;
+        string NextGame;
+        string NextTitle;
+        string LastGame = null;
+        string LastTitle = null;
 
         string _dotDotDotPattern = @"^(\.)+$";
 
@@ -75,12 +80,15 @@ namespace PyRZyBot
                 tldrCounter = savefile.tldrCounter;
                 simpleCommands = savefile.simpleCommands;
                 Grafik = savefile.Grafik;
+                Mistakes = savefile.Mistakes;
+                NextGame = savefile.NextGame;
+                NextTitle = savefile.NextTitle;
             }
 
             ConnectionCredentials credentials = new ConnectionCredentials(TwitchInfo.BotName, TwitchInfo.BotToken);
             var clientOptions = new ClientOptions
             {
-                MessagesAllowedInPeriod = 5,
+                MessagesAllowedInPeriod = 7,
                 ThrottlingPeriod = TimeSpan.FromSeconds(3)
             };
             WebSocketClient customClient = new WebSocketClient(clientOptions);
@@ -90,8 +98,8 @@ namespace PyRZyBot
             if (isLogging)
                 client.OnLog += Client_OnLog;
 
-            client.OnMessageReceived += Client_OnMessageReceived;
             client.OnChatCommandReceived += Client_OnChatCommandReceived;
+            client.OnMessageReceived += Client_OnMessageReceived;
             client.Connect();
             SetTimer();
 
@@ -113,6 +121,18 @@ namespace PyRZyBot
 
             switch (e.Command.CommandText.ToLower())
             {
+                case "commands":
+
+                    String Message = "Dostępne komendy: !grafik ";
+                    foreach (string Key in simpleCommands.Keys)
+                        Message += $"!{Key} ";
+
+                    if (e.Command.ChatMessage.IsModerator || e.Command.ChatMessage.IsBroadcaster)
+                        Message += "!title !game !next !ban !unban !command add/delete";
+
+                    client.SendMessage(TwitchInfo.ChannelName, Message);
+
+                    break;
                 case "grafik":
 
                     if ((e.Command.ChatMessage.IsBroadcaster || e.Command.ChatMessage.IsModerator) && e.Command.ArgumentsAsList.Count() != 0)
@@ -180,11 +200,20 @@ namespace PyRZyBot
                     {
                         if ((e.Command.ChatMessage.IsBroadcaster || e.Command.ChatMessage.IsModerator) && e.Command.ArgumentsAsList.Count() != 0)
                         {
-                            Game = e.Command.ArgumentsAsString;
-                            var t = Task.Run(async () => { await API.V5.Channels.UpdateChannelAsync(TwitchInfo.ChannelID, Title, Game); });
-                            t.Wait();
-                            client.SendMessage(TwitchInfo.ChannelName, $"Zmieniono grę na: {Game}");
-                            return;
+                            try
+                            {
+                                Game = e.Command.ArgumentsAsString;
+                                var t = Task.Run(async () => { await API.V5.Channels.UpdateChannelAsync(TwitchInfo.ChannelID, Title, Game); });
+                                t.Wait();
+                                client.SendMessage(TwitchInfo.ChannelName, $"Zmieniono grę na: {Game}");
+                                return;
+                            }
+                            catch (Exception err)
+                            {
+                                Console.WriteLine(err.Message);
+                                client.SendMessage(TwitchInfo.ChannelName, "Coś poszło nie tak :/");
+                                return;
+                            }
                         }
                         client.SendMessage(TwitchInfo.ChannelName, $"Obecna gra: {Game}");
                     }
@@ -193,27 +222,23 @@ namespace PyRZyBot
                     {
                         if ((e.Command.ChatMessage.IsBroadcaster || e.Command.ChatMessage.IsModerator) && e.Command.ArgumentsAsList.Count() != 0)
                         {
-                            Title = e.Command.ArgumentsAsString;
-                            var t = Task.Run(async () => { await API.V5.Channels.UpdateChannelAsync(TwitchInfo.ChannelID, Title, Game); });
-                            t.Wait();
-                            client.SendMessage(TwitchInfo.ChannelName, $"Zmieniono tytuł na: {Title}");
-                            return;
+                            try
+                            {
+                                Title = e.Command.ArgumentsAsString;
+                                var t = Task.Run(async () => { await API.V5.Channels.UpdateChannelAsync(TwitchInfo.ChannelID, Title, Game); });
+                                t.Wait();
+                                client.SendMessage(TwitchInfo.ChannelName, $"Zmieniono tytuł na: {Title}");
+                                return;
+                            }
+                            catch (Exception err)
+                            {
+                                Console.WriteLine(err.Message);
+                                client.SendMessage(TwitchInfo.ChannelName, "Twitch nie lubi tego tytułu :frowning:");
+                                return;
+                            }
                         }
                         client.SendMessage(TwitchInfo.ChannelName, $"Obecny tytuł: {Title}");
                     }
-                    break;
-                case "commands":
-
-                    String Message = "Dostępne komendy: ";
-                    foreach (string Key in simpleCommands.Keys)
-                        Message += $"!{Key} ";
-
-                    Message += "!grafik !title !game";
-                    if (e.Command.ChatMessage.IsModerator || e.Command.ChatMessage.IsBroadcaster)
-                        Message += "!ban !unban !command add/delete";
-
-                    client.SendMessage(TwitchInfo.ChannelName, Message);
-
                     break;
             }
 
@@ -222,53 +247,60 @@ namespace PyRZyBot
                 string Username = string.Empty;
                 switch (e.Command.CommandText.ToLower())
                 {
+                    case "błąd":
+
+                        List<string> Mistake = e.Command.ArgumentsAsString.ToLower().Split(";").ToList();
+                        Mistakes.Add(Mistake[0], Mistake[1]);
+                        client.SendMessage(TwitchInfo.ChannelName, "Dodano błąd");
+
+                        break;
                     case "ban":
 
-                        if (e.Command.ArgumentsAsList.Count == 0)
+                        if (e.Command.ArgumentsAsList.Count != 0)
                         {
-                            client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !ban (Użytkownik)");
-                            return;
-                        }
-                        Username = e.Command.ArgumentsAsList[0].Replace("@", "");
-                        if (!IsUsername(Username))
-                        {
-                            client.SendMessage(TwitchInfo.ChannelName, "Musisz podać poprawną nazwę użytkownika!");
-                            return;
-                        }
-                        if (!Banned_Users.Contains(Username.ToLower()))
-                        {
+                            Username = e.Command.ArgumentsAsList[0].Replace("@", "");
+                            if (!IsUsername(Username))
+                            {
+                                client.SendMessage(TwitchInfo.ChannelName, "Musisz podać poprawną nazwę użytkownika!");
+                                return;
+                            }
                             if (Mods.Contains(Username.ToLower()))
                             {
                                 client.SendMessage(TwitchInfo.ChannelName, "Nie można zbanować moderatora!");
                                 return;
                             }
-                            Banned_Users.Add(Username.ToLower());
-                            client.SendMessage(TwitchInfo.ChannelName, $"Zbanowano {Username} :partying:");
+                            if (!Banned_Users.Contains(Username.ToLower()))
+                            {
+                                Banned_Users.Add(Username.ToLower());
+                                client.SendMessage(TwitchInfo.ChannelName, $"Zbanowano {Username} :partying:");
+                                return;
+                            }
+                            client.SendMessage(TwitchInfo.ChannelName, $"{Username} już jest zbanowany!");
                             return;
                         }
-                        client.SendMessage(TwitchInfo.ChannelName, $"{Username} już jest zbanowany!");
+                        client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !ban (Użytkownik)");
 
                         break;
                     case "unban":
 
-                        if (e.Command.ArgumentsAsList.Count == 0)
+                        if (e.Command.ArgumentsAsList.Count != 0)
                         {
-                            client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !unban (Użytkownik)");
+                            Username = e.Command.ArgumentsAsList[0].Replace("@", "");
+                            if (!IsUsername(Username))
+                            {
+                                client.SendMessage(TwitchInfo.ChannelName, "Musisz podać poprawną nazwę użytkownika!");
+                                return;
+                            }
+                            if (Banned_Users.Contains(Username.ToLower()))
+                            {
+                                Banned_Users.Remove(Username.ToLower());
+                                client.SendMessage(TwitchInfo.ChannelName, $"Odbanowano {Username} :frowning:");
+                                return;
+                            }
+                            client.SendMessage(TwitchInfo.ChannelName, $"{Username} nie jest zbanowany!");
                             return;
                         }
-                        Username = e.Command.ArgumentsAsList[0].Replace("@", "");
-                        if (!IsUsername(Username))
-                        {
-                            client.SendMessage(TwitchInfo.ChannelName, "Musisz podać poprawną nazwę użytkownika!");
-                            return;
-                        }
-                        if (Banned_Users.Contains(Username.ToLower()))
-                        {
-                            Banned_Users.Remove(Username.ToLower());
-                            client.SendMessage(TwitchInfo.ChannelName, $"Odbanowano {Username} :frowning:");
-                            return;
-                        }
-                        client.SendMessage(TwitchInfo.ChannelName, $"{Username} nie jest zbanowany!");
+                        client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !unban (Użytkownik)");
 
                         break;
                     case "command":
@@ -285,7 +317,7 @@ namespace PyRZyBot
 
                                 if (e.Command.ArgumentsAsList.Count < 3)
                                 {
-                                    client.SendMessage(TwitchInfo.ChannelName, "Musisz podać nazwę i treść komendy!");
+                                    client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !command add (Wywołanie) (Treść)");
                                     return;
                                 }
                                 if (simpleCommands.ContainsKey(e.Command.ArgumentsAsList[1].ToLower()))
@@ -301,7 +333,7 @@ namespace PyRZyBot
 
                                 if (e.Command.ArgumentsAsList.Count != 2)
                                 {
-                                    client.SendMessage(TwitchInfo.ChannelName, "Musisz podać nazwę komendy!");
+                                    client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !command delete (Wywołanie)");
                                     return;
                                 }
                                 if (!simpleCommands.ContainsKey(e.Command.ArgumentsAsList[1].ToLower()))
@@ -320,14 +352,123 @@ namespace PyRZyBot
                                 return;
                         }
                         break;
+                    case "next":
+                        {
+                            if (e.Command.ArgumentsAsList.Count() == 0)
+                            {
+                                if (String.IsNullOrEmpty(NextTitle) && String.IsNullOrEmpty(NextGame))
+                                {
+                                    client.SendMessage(TwitchInfo.ChannelName, $"Nie ustawiono następnego tytułu i gry!");
+                                    return;
+                                }
+                                if (String.IsNullOrEmpty(NextTitle))
+                                {
+                                    client.SendMessage(TwitchInfo.ChannelName, $"Nie ustawiono następnego tytułu!");
+                                    return;
+                                }
+                                if (String.IsNullOrEmpty(NextGame))
+                                {
+                                    client.SendMessage(TwitchInfo.ChannelName, $"Nie ustawiono następnej gry!");
+                                    return;
+                                }
+                                try
+                                {
+                                    var ChannelInfo = API.V5.Channels.GetChannelAsync(API.Settings.AccessToken);
+                                    LastTitle = ChannelInfo.Result.Status;
+                                    LastGame = ChannelInfo.Result.Game;
+                                    var t = Task.Run(async () => { await API.V5.Channels.UpdateChannelAsync(TwitchInfo.ChannelID, NextTitle, NextGame); });
+                                    t.Wait();
+                                    client.SendMessage(TwitchInfo.ChannelName, $"Zmieniono tytuł na: {NextTitle}");
+                                    client.SendMessage(TwitchInfo.ChannelName, $"Zmieniono grę na: {NextGame}");
+
+                                    if (NextGame.ToLower() == "drawful 2" && simpleCommands.ContainsKey("jackbox"))
+                                        client.SendMessage(TwitchInfo.ChannelName, simpleCommands["jackbox"]);
+
+                                    Title = NextTitle;
+                                    NextTitle = null;
+                                    Game = NextGame;
+                                    NextGame = null;
+                                }
+                                catch (Exception err)
+                                {
+                                    Console.WriteLine(err.Message);
+                                    client.SendMessage(TwitchInfo.ChannelName, "Twitch nie lubi tego tytułu :frowning:");
+                                }
+                            }
+
+                            switch (e.Command.ArgumentsAsList[0].ToLower())
+                            {
+                                case "c":
+
+                                    NextTitle = null;
+                                    NextGame = null;
+                                    client.SendMessage(TwitchInfo.ChannelName, $"Usunięto następne ustawienia!");
+
+                                    break;
+                                case "title":
+
+                                    if (e.Command.ArgumentsAsList.Count() == 1)
+                                    {
+                                        if (String.IsNullOrEmpty(NextTitle))
+                                        {
+                                            client.SendMessage(TwitchInfo.ChannelName, $"Nie ustawiono następnego tytułu!");
+                                            return;
+                                        }
+                                        client.SendMessage(TwitchInfo.ChannelName, $"Następny tytuł: {NextTitle}");
+                                        return;
+                                    }
+                                    NextTitle = e.Command.ArgumentsAsString.Substring(6);
+                                    client.SendMessage(TwitchInfo.ChannelName, $"Ustawiono następny tytuł na: {NextTitle}");
+
+                                    break;
+                                case "game":
+
+                                    if (e.Command.ArgumentsAsList.Count() == 1)
+                                    {
+                                        if (String.IsNullOrEmpty(NextGame))
+                                        {
+                                            client.SendMessage(TwitchInfo.ChannelName, $"Nie ustawiono następnej gry!");
+                                            return;
+                                        }
+                                        client.SendMessage(TwitchInfo.ChannelName, $"Następna gra: {NextGame}");
+                                        return;
+                                    }
+                                    NextGame = e.Command.ArgumentsAsString.Substring(5);
+                                    client.SendMessage(TwitchInfo.ChannelName, $"Ustawiono następną grę na: {NextGame}");
+
+                                    break;
+                            }
+                        }
+                        break;
+                    case "previous":
+                        {
+                            if (String.IsNullOrEmpty(LastTitle))
+                            {
+                                client.SendMessage(TwitchInfo.ChannelName, $"Brak ostatnich ustawień!");
+                                return;
+                            }
+                            var ChannelInfo = API.V5.Channels.GetChannelAsync(API.Settings.AccessToken);
+                            NextTitle = ChannelInfo.Result.Status;
+                            NextGame = ChannelInfo.Result.Game;
+                            var t = Task.Run(async () => { await API.V5.Channels.UpdateChannelAsync(TwitchInfo.ChannelID, LastTitle, LastGame); });
+                            t.Wait();
+                            client.SendMessage(TwitchInfo.ChannelName, $"Cofnięto do poprzednich ustawień!");
+                            Title = LastTitle;
+                            LastTitle = null;
+                            Game = LastGame;
+                            LastGame = null;
+                        }
+                        break;
                 }
             }
         }
 
-
         private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e)
         {
+            if (e.ChatMessage.Message.StartsWith('!')) { return; }
+
             var Username = e.ChatMessage.Username;
+            string Message = null;
 
             if (e.ChatMessage.Message.Length > 200)
             {
@@ -335,14 +476,35 @@ namespace PyRZyBot
                     tldrCounter.Add(e.ChatMessage.Username, 0);
 
                 tldrCounter[e.ChatMessage.Username]++;
-                var output = "Duuuuuud, don't ściana tekstu me :rage:";
-                if (tldrCounter[e.ChatMessage.Username] > 2)
-                    output += $" to już {tldrCounter[e.ChatMessage.Username]} raz!";
-
-                client.SendMessage(TwitchInfo.ChannelName, output);
-                return;
             }
+
+            //Ortografia check 
+            {
+                List<string> KeyList = new List<string>(Mistakes.Keys);
+                foreach (var key in KeyList)
+                {
+                    if (e.ChatMessage.Message.ToLower().Contains(key))
+                        Message += $"{Mistakes[key]}* ";
+                }
+                if (!String.IsNullOrEmpty(Message))
+                {
+                    client.SendMessage(TwitchInfo.ChannelName, Message);
+                    Message = null;
+                    return;
+                }
+            }                    
+
             if (Banned_Users.Contains(e.ChatMessage.Username)) { return; }
+
+            if(e.ChatMessage.Message.Length > 200)
+            {
+                Message = "Duuuuuud, don't ściana tekstu me :rage:";
+                if (tldrCounter[e.ChatMessage.Username] > 2)
+                    Message += $" to już {tldrCounter[e.ChatMessage.Username]} raz!";
+
+                client.SendMessage(TwitchInfo.ChannelName, Message);
+                Message = null;
+            }
 
             if (e.ChatMessage.Message.ToLower().Contains("siema pyrzy") || e.ChatMessage.Message.ToLower().Contains("cześć pyrzy") || e.ChatMessage.Message.ToLower().Contains("czesc pyrzy"))
             {
@@ -368,7 +530,7 @@ namespace PyRZyBot
                     return;
                 }
                 Random Random = new Random();
-                var RandomValue = Random.NextDouble() * Weights.Sum();
+                double RandomValue = Random.NextDouble() * Weights.Sum();
                 for (int i = 0; i < Weights.Count; i++)
                 {
                     RandomValue -= Weights[i];
@@ -394,11 +556,10 @@ namespace PyRZyBot
             if (e.ChatMessage.Message.Contains("xD") || e.ChatMessage.Message.Contains("XD"))
             {
                 Random Random = new Random();
-                double R = Random.NextDouble();
-                if (R <= 0.9) { return; }
+                int RandomValue = Random.Next(1, 11);
+                if (RandomValue <= 0.8) { return; }
                 LSM = DateTime.Now;
                 client.SendMessage(TwitchInfo.ChannelName, "xD");
-                return;
             }
         }
 
@@ -409,14 +570,21 @@ namespace PyRZyBot
 
         private void SetTimer()
         {
-            CzyTimer = new Timer(120000);
-            CzyTimer.Elapsed += CzyEvent;
-            CzyTimer.AutoReset = true;
-            CzyTimer.Enabled = true;
             DSCTimer = new Timer(1200000);
             DSCTimer.Elapsed += DSCEvent;
             DSCTimer.AutoReset = true;
             DSCTimer.Enabled = true;
+
+            CzyTimer = new Timer(120000);
+            CzyTimer.Elapsed += CzyEvent;
+            CzyTimer.AutoReset = true;
+            CzyTimer.Enabled = true;
+        }
+
+        private void DSCEvent(Object source, ElapsedEventArgs e)
+        {
+            if (simpleCommands.ContainsKey("discord"))
+                client.SendMessage(TwitchInfo.ChannelName, simpleCommands["discord"]);
         }
 
         private void CzyEvent(object source, ElapsedEventArgs e)
@@ -426,11 +594,6 @@ namespace PyRZyBot
             {
                 czySpam[key] = czySpam[key] > 0 ? czySpam[key] - 1 : 0;
             }
-        }
-
-        private void DSCEvent(Object source, ElapsedEventArgs e)
-        {
-            client.SendMessage(TwitchInfo.ChannelName, "Chcesz wiedzieć, kiedy będzie kolejny stream? zapraszam na Discorda: https://discord.gg/jtGZQFa");
         }
 
         internal void Disconnect()
@@ -447,7 +610,10 @@ namespace PyRZyBot
                 Weights = Weights,
                 tldrCounter = tldrCounter,
                 simpleCommands = simpleCommands,
-                Grafik = Grafik
+                Grafik = Grafik,
+                Mistakes = Mistakes,
+                NextGame = NextGame,
+                NextTitle = NextTitle
             };
 
             string json = JsonConvert.SerializeObject(saveFileTemplate);

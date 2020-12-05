@@ -13,5 +13,8 @@ namespace PyRZyBot
         public Dictionary<string, int> tldrCounter;
         public Dictionary<string, string> simpleCommands;
         public List<string> Grafik;
+        public Dictionary<string, string> Mistakes;
+        public string NextGame;
+        public string NextTitle;
     }
 }

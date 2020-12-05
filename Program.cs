@@ -10,7 +10,6 @@ namespace PyRZyBot
 
             PyRZyBot.Connect(true);
 
-            Console.WriteLine("v1.2");
             Console.ReadLine();
 
             PyRZyBot.Disconnect();

@@ -85,6 +85,39 @@ namespace PyRZyBot
                 }
             }
         }
+        public static Dictionary<string, DateTime> RewardMessageCd = new Dictionary<string, DateTime>();
+        public static Dictionary<string, int> AmmountRedeemed = new Dictionary<string, int>();
+        public static void AddPendingRewardMessage(string IdName, int Cost)
+        {
+            List<string> Waiting = new List<string>(RewardMessageCd.Keys);
+            if (!Waiting.Contains(IdName))
+            {
+                RewardMessageCd.Add(IdName, DateTime.Now);
+                AmmountRedeemed.Add(IdName, Cost);
+            }
+            else
+            {
+                RewardMessageCd[IdName] = DateTime.Now;
+                AmmountRedeemed[IdName] += Cost;
+            }
+        }
+        public static string CheckPendingRewardMessages(Dictionary<string, ChatUser> ChatUsers)
+        {
+            List<string> Waiting = new List<string>(RewardMessageCd.Keys);
+            string Message = "";
+
+            foreach (string IdName in Waiting)
+            {
+                if (RewardMessageCd[IdName].AddSeconds(3) < DateTime.Now)
+                {
+                    Message = $"{ChatUsers[IdName].DisplayedName} {Helper.EndingOther(IdName, "odebrał")} {AmmountRedeemed[IdName]} {Helper.EndingPyry(AmmountRedeemed[IdName])}!";
+                    RewardMessageCd.Remove(IdName);
+                    AmmountRedeemed.Remove(IdName);
+                    if (RewardMessageCd.Count == 0) { Bot.RewardCd.Stop(); }
+                }
+            }
+            return Message;
+        }
         public static int SinceLastFight(Dictionary<string, ChatUser> Chatusers, string IdName)
         {
             TimeSpan Difference = DateTime.Now - Chatusers[IdName].Cooldown;

@@ -62,6 +62,15 @@ namespace PyRZyBot
 
                     case "dał":
                         return "dała";
+
+                    case "przegrał":
+                        return "przegrała";
+
+                    case "odebrał":
+                        return "odebrała";
+                    
+                    case "wyzwałeś":
+                        return "wyzwałaś";
                 }
             return x;
         }

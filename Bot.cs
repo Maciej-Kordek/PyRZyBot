@@ -237,7 +237,7 @@ namespace PyRZyBot
                                             return;
                                         }
                                         ChatUsers[AtIdName].Pyry += Convert.ToInt32(e.Command.ArgumentsAsList[2]);
-                                        client.SendMessage(TwitchInfo.ChannelName, $"{ChatUsers[AtIdName].DisplayedName} ma teraz {ChatUsers[AtIdName].Pyry} {Helper.EndingPyry(ChatUsers[IdName].Pyry)}!");
+                                        client.SendMessage(TwitchInfo.ChannelName, $"{ChatUsers[AtIdName].DisplayedName} ma teraz {ChatUsers[AtIdName].Pyry} {Helper.EndingPyry(ChatUsers[AtIdName].Pyry)}!");
                                     }
                                     return;
                                 case "delete":
@@ -261,7 +261,7 @@ namespace PyRZyBot
                                         if (ChatUsers[AtIdName].Pyry < 0)
                                             ChatUsers[AtIdName].Pyry = 0;
 
-                                        client.SendMessage(TwitchInfo.ChannelName, $"{ChatUsers[AtIdName].DisplayedName} ma teraz {ChatUsers[AtIdName].Pyry} {Helper.EndingPyry(ChatUsers[IdName].Pyry)}!");
+                                        client.SendMessage(TwitchInfo.ChannelName, $"{ChatUsers[AtIdName].DisplayedName} ma teraz {ChatUsers[AtIdName].Pyry} {Helper.EndingPyry(ChatUsers[AtIdName].Pyry)}!");
                                     }
                                     return;
                             }
@@ -340,7 +340,7 @@ namespace PyRZyBot
                         }
                         if (!string.IsNullOrEmpty(ChatUsers[IdName].Wyzwania))
                         {
-                            client.SendMessage(TwitchInfo.ChannelName, $"@{ChatUsers[IdName].DisplayedName}, już jesteś {Helper.EndingOther(IdName, "zapisany")} na walkę!");
+                            client.SendMessage(TwitchInfo.ChannelName, $"@{ChatUsers[IdName].DisplayedName}, jesteś {Helper.EndingOther(IdName, "zapisany")} na inną walkę!");
                             return;
                         }
                         if (!string.IsNullOrEmpty(ChatUsers[AtIdName].Wyzwania))
@@ -395,9 +395,8 @@ namespace PyRZyBot
                     }
                     return;
                 case "y":
+                case "t":
                 case "tak":
-                case "accept":
-                case "akceptuj":
                     {
                         if (ChatUsers[IdName].IsBanned) { return; }
                         if (string.IsNullOrEmpty(ChatUsers[IdName].Wyzwania))
@@ -453,9 +452,9 @@ namespace PyRZyBot
                         {
                             Message += $" {ChatUsers[Wygrany].DisplayedName} {Helper.EndingOther(Wygrany, "wygrał")} {ChatUsers[Wygrany].Streak} razy z rzędu!";
                         }
-                        else if (ChatUsers[Przegrany].Streak < -2)
+                        else if (ChatUsers[Przegrany].Streak < -2 && Stawka >= 100)
                         {
-                            Message += $" {ChatUsers[Wygrany].DisplayedName} {Helper.EndingOther(Wygrany, "przegrał")} {ChatUsers[Wygrany].Streak * -1} razy z rzędu!";
+                            Message += $" {ChatUsers[Przegrany].DisplayedName} {Helper.EndingOther(Przegrany, "przegrał")} {ChatUsers[Przegrany].Streak * -1} razy z rzędu xD";
                         }
 
                         ChatUsers[ChatUsers[IdName].Wyzwania].Cooldown = DateTime.Now;
@@ -469,10 +468,8 @@ namespace PyRZyBot
                     return;
                 case "n":
                 case "nie":
-                case "odrzuć":
-                case "odrzuc":
                 case "cancel":
-                case "deny":
+                case "anuluj":
                     {
                         if (ChatUsers[IdName].IsBanned) { return; }
                         if (string.IsNullOrEmpty(ChatUsers[IdName].Wyzwania))

@@ -46,6 +46,7 @@ namespace PyRZyBot
         private Timer DSCTimer;
         private Timer CzyTimer;
         DateTime LSM = DateTime.Now;
+        DateTime Timer;
 
         private static TwitchAPI API;
         private LiveStreamMonitorService Monitor;
@@ -292,6 +293,12 @@ namespace PyRZyBot
                     {
                         if (ChatUsers[IdName].IsBanned) { return; }
 
+                        if (e.Command.ArgumentsAsList.Count() == 0)
+                        {
+                            client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !wyzwij (Użytkownik) (kwota zakładu)");
+                            return;
+                        }
+
                         if (e.Command.ArgumentsAsList[0] == "info" || e.Command.ArgumentsAsList[0] == "i")
                         {
                             if (string.IsNullOrEmpty(ChatUsers[IdName].Wyzwania))
@@ -311,12 +318,6 @@ namespace PyRZyBot
                         if (ChatUser.SinceLastFight(ChatUsers, IdName) < Helper.FightCooldown)
                         {
                             client.SendMessage(TwitchInfo.ChannelName, $"@{ChatUsers[IdName].DisplayedName}, musisz odpocząć po ostatniej walce! Jeszcze {Helper.FightCooldown - ChatUser.SinceLastFight(ChatUsers, IdName) + 10}s");
-                            return;
-                        }
-
-                        if (e.Command.ArgumentsAsList.Count() == 0)
-                        {
-                            client.SendMessage(TwitchInfo.ChannelName, "Poprawny zapis: !wyzwij (Użytkownik) (kwota zakładu)");
                             return;
                         }
 
@@ -450,7 +451,7 @@ namespace PyRZyBot
 
                         if (ChatUsers[Wygrany].Streak > 2 && Stawka >= 100)
                         {
-                            Message += $" {ChatUsers[Wygrany].DisplayedName} {Helper.EndingOther(Wygrany, "wygrał")} {ChatUsers[Wygrany].Streak} razy z rzędu!";
+                            Message += $" {ChatUsers[Wygrany].DisplayedName} {Helper.EndingOther(Wygrany, "wygrał")} {ChatUsers[Wygrany].Streak} razy z rzędu PogChamp";
                         }
                         else if (ChatUsers[Przegrany].Streak < -2 && Stawka >= 100)
                         {
@@ -550,14 +551,41 @@ namespace PyRZyBot
                     return;
                 case "commands":
                     {
-                        Message = "Dostępne komendy: !grafik !walcz !pyry";
+                        Message = "Dostępne komendy: !grafik !walcz !pyry !stats !ranking ";
                         foreach (string Key in simpleCommands.Keys)
                             Message += $"!{Key} ";
 
                         if (e.Command.ChatMessage.IsModerator || e.Command.ChatMessage.IsBroadcaster)
-                            Message += "!title !game !next !ban !unban !command add/delete";
+                            Message += "!title !game !next !ban/unban !command add/delete";
 
                         client.SendMessage(TwitchInfo.ChannelName, Message);
+                    }
+                    return;
+                case "timer":
+                    {
+                        if (e.Command.ArgumentsAsList.Count == 0) { return; }
+                        if (!ChatUsers[IdName].IsModerator) { return; }
+
+                        switch (e.Command.ArgumentsAsList[0])
+                        {
+                            case "start":
+                                {
+                                    Timer = DateTime.Now;
+                                    client.SendMessage(TwitchInfo.ChannelName, "Rozpoczęto mierzenie czasu!");
+                                }
+                                return;
+                            case "stop":
+                                {
+                                    TimeSpan Czas = DateTime.Now.Subtract(Timer);
+                                    if (Czas.Hours != 0) { Message = $"{Czas.Hours}:"; }
+                                    if (Czas.Minutes != 0) { Message += $"{Czas.Minutes}:"; }
+                                    Message += $"{Czas.Seconds}.";
+                                    Message += $"{Czas.Milliseconds}";
+
+                                    client.SendMessage(TwitchInfo.ChannelName, $"Czas: {Message}!");
+                                }
+                                return;
+                        }
                     }
                     return;
                 case "grafik":

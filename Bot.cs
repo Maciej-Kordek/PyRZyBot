@@ -1022,7 +1022,9 @@ namespace PyRZyBot
 
         private void Client_OnLog(object sender, OnLogArgs e)
         {
-            Console.WriteLine(e.Data);
+            var Data = e.Data;
+            Data = Regex.Replace(Data, "[^ a-zA-Z0-9!-~]", "?", RegexOptions.Compiled);
+            Console.WriteLine($"{Data}");
         }
         private void Client_pubsub_OnPubSubServiceConnected(object sender, EventArgs e)
         {

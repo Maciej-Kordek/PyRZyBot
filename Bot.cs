@@ -142,12 +142,6 @@ namespace PyRZyBot_2._0
 
             LogMessage(true, Channel, Name, Message);
 
-            if(Message.ToLower() == "!on")
-                CustomCommands.StartTimers(Channel);
-
-            if (Message.ToLower() == "!off")
-                CustomCommands.StopTimers(Channel);
-
             CheckMessage(Channel, Name, Message);
         }
         public static void CheckMessage(string Channel, string Name, string Message)

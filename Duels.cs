@@ -117,7 +117,7 @@ namespace PyRZyBot_2._0
                 int PointsPool = 0;
                 if (Arguments.Count == 3)
                 {
-                    if (!Enums.IsInt(Arguments[2]))
+                    if (!Enums.IsInt(Arguments[2]) || int.Parse(Arguments[2]) < 0)
                     {
                         Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !walcz użytkownikowi {Name} (Kwota nie jest liczbą naturalną)");
                         Bot.SendMessage(Channel, 1, false, $"@{Name}, Podana kwota nie jest liczbą naturalną");
@@ -159,11 +159,13 @@ namespace PyRZyBot_2._0
                     if (DuelList.ContainsKey(Attacker.ChatUsers_S.DuelId))
                         DuelList.Remove(Attacker.ChatUsers_S.DuelId);
 
-                    var OldDefender = context.ChatUsers_S.FirstOrDefault(x => x.DuelId == Attacker.ChatUsers_S.DuelId);
+                    var OldDefender = context.ChatUsers_S.FirstOrDefault(x => x.DuelId == Attacker.ChatUsers_S.DuelId && x.TwitchId != Attacker.TwitchId);
                     if (OldDefender != null)
+                    {
                         OldDefender.DuelId = 0;
-                    context.Update(OldDefender);
-                    context.SaveChanges();
+                        context.Update(OldDefender);
+                        context.SaveChanges();
+                    }
                 }
 
                 if (Defender.ChatUsers_S.DuelId != 0)
@@ -171,11 +173,13 @@ namespace PyRZyBot_2._0
                     if (DuelList.ContainsKey(Defender.ChatUsers_S.DuelId))
                         DuelList.Remove(Defender.ChatUsers_S.DuelId);
 
-                    var OldAttacker = context.ChatUsers_S.FirstOrDefault(x => x.DuelId == Attacker.ChatUsers_S.DuelId);
+                    var OldAttacker = context.ChatUsers_S.FirstOrDefault(x => x.DuelId == Defender.ChatUsers_S.DuelId && x.TwitchId != Defender.TwitchId);
                     if (OldAttacker != null)
+                    {
                         OldAttacker.DuelId = 0;
-                    context.Update(OldAttacker);
-                    context.SaveChanges();
+                        context.Update(OldAttacker);
+                        context.SaveChanges();
+                    }
                 }
 
                 Duels Duel = new Duels(Attacker.TwitchId, Defender.TwitchId, PointsPool);
@@ -480,14 +484,14 @@ namespace PyRZyBot_2._0
                     Winrate *= AtUser.ChatUsers_S.DuelsWon;
                     Winrate /= AtUser.ChatUsers_S.DuelsPlayed;
                     Winrate = Math.Round(Winrate, 2);
-                    Bot.SendMessage(Channel,2,true, $"@{Name}, {Database.GetNickname(Channel,AtUser.Name)}: Zwycięstwa: {AtUser.ChatUsers_S.DuelsWon} | Rozegrane walki: {AtUser.ChatUsers_S.DuelsPlayed} | Winrate: {Winrate}% | Max win/lose streak: {AtUser.ChatUsers_S.MaxWinStreak}/{AtUser.ChatUsers_S.MaxLoseStreak * -1} | Obecny streak: {AtUser.ChatUsers_S.Streak}");
+                    Bot.SendMessage(Channel, 2, true, $"@{Name}, {Database.GetNickname(Channel, AtUser.Name)}: Zwycięstwa: {AtUser.ChatUsers_S.DuelsWon} | Rozegrane walki: {AtUser.ChatUsers_S.DuelsPlayed} | Winrate: {Winrate}% | Max win/lose streak: {AtUser.ChatUsers_S.MaxWinStreak}/{AtUser.ChatUsers_S.MaxLoseStreak * -1} | Obecny streak: {AtUser.ChatUsers_S.Streak}");
                     return;
                 }
                 var User = context.ChatUsers.Where(x => x.Channel == Channel && x.Name == Name).Include(x => x.ChatUsers_S).FirstOrDefault();
                 Winrate *= User.ChatUsers_S.DuelsWon;
                 Winrate /= User.ChatUsers_S.DuelsPlayed;
                 Winrate = Math.Round(Winrate, 2);
-                Bot.SendMessage(Channel,2,true, $"@{Name}: Zwycięstwa: {User.ChatUsers_S.DuelsWon} | Rozegrane walki: {User.ChatUsers_S.DuelsPlayed} | Winrate: {Winrate}% | Max win/lose streak: {User.ChatUsers_S.MaxWinStreak}/{User.ChatUsers_S.MaxLoseStreak * -1} | Obecny streak: {User.ChatUsers_S.Streak}");
+                Bot.SendMessage(Channel, 2, true, $"@{Name}: Zwycięstwa: {User.ChatUsers_S.DuelsWon} | Rozegrane walki: {User.ChatUsers_S.DuelsPlayed} | Winrate: {Winrate}% | Max win/lose streak: {User.ChatUsers_S.MaxWinStreak}/{User.ChatUsers_S.MaxLoseStreak * -1} | Obecny streak: {User.ChatUsers_S.Streak}");
 
             }
         }

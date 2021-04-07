@@ -11,7 +11,7 @@ namespace PyRZyBot_2._0.Entities
     class CustomCommands
     {
         public static List<TimedCommands> Timers = new List<TimedCommands>();
-        public static List<int> Weights = new List<int> { 8, 8, 3, 1, 100 };
+        public static List<int> Weights = new List<int> { 8, 8, 3, 1, 1 };
         public static List<string> Responses = new List<string> { "Tak", "Nie", "Oj nie wiem nie wiem", "xD", "Paaaaanie, bota o to pytasz? litości... 🙄" };
 
         public static void Command(string Channel, string Name, List<string> Arguments)
@@ -172,7 +172,7 @@ namespace PyRZyBot_2._0.Entities
                 var Command = FindCommand(CommandName, Channel);
                 if (Command == null)
                 {
-                    Bot.LogEvent(Channel, 0, $"Nie znaleziono komendy {CommandName}");
+                    //Bot.LogEvent(Channel, 0, $"Nie znaleziono komendy {CommandName}");
                     return false;
                 }//CZY KOMENDA ISTNIEJE
                 if (Database.IsBanned(Name, Channel))

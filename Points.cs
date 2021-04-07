@@ -125,7 +125,7 @@ namespace PyRZyBot_2._0
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, podano niewłaściwą liczbę argumentów (!points <użytkownik>)");
                 return;
             }
-            string AtName = Arguments[1].ToLower();
+            string AtName = Arguments[1].ToLower().Trim('@');
             if (Name.ToLower() == AtName)
             {
                 CheckSelfPoints(Channel, Name);
@@ -137,7 +137,7 @@ namespace PyRZyBot_2._0
                 if (User == null)
                 {
                     Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !points <użytkownik> użytkownikowi {Name} (Nie znaleziono oznaczonego użytkownika)");
-                    Bot.SendMessage(Channel, 1, true, $"@{Name}, nie znaleziono użytkownika {AtName})");
+                    Bot.SendMessage(Channel, 1, true, $"@{Name}, nie znaleziono użytkownika {AtName}");
                     return;
                 }
                 int Points = User.ChatUsers_S.Points;

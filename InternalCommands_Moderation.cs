@@ -20,7 +20,7 @@ namespace PyRZyBot_2._0
                 Bot.LogEvent(Channel, 0, $"Odmówiono użycia komendy !sudo użytkownikowi {Name} (Użytkownik wykluczony czasOwO)");
                 return;
             }
-            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.headmod)
+            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.mod)
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !sudo użytkownikowi {Name} (Brak uprawnień)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, nie posiadasz odpowiednich uprawnień");

@@ -14,10 +14,10 @@ namespace PyRZyBot_2._0
 
         static void Main(string[] args)
         {
-            string Input = "";
-            string Connected = "";
+            string Input = string.Empty;
+            string Connected = string.Empty;
 
-            AssemblyLoadContext.Default.Unloading += Default_Unloading; ;
+            AssemblyLoadContext.Default.Unloading += Default_Unloading;
 
             PyRZyBot.Connect();
 
@@ -69,7 +69,7 @@ namespace PyRZyBot_2._0
         }
         public static void StartFailSafe()
         {
-            FailSafe = new Timer(15000);
+            FailSafe = new Timer(10000);
             FailSafe.Start();
             FailSafe.AutoReset = false;
             FailSafe.Elapsed += CheckConnection;

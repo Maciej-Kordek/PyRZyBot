@@ -262,7 +262,7 @@ namespace PyRZyBot_2._0
                 Bot.LogEvent(Channel, 0, $"Odmówiono zmiany uprawnień użytkownikowi {Name} (Użytkownik wykluczony czasOwO)");
                 return;
             }
-            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.headmod)
+            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.mod)
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono zmiany uprawnień użytkownikowi {Name} (Brak uprawnień)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie posiadasz odpowiednich uprawnień");
@@ -312,7 +312,7 @@ namespace PyRZyBot_2._0
                 Bot.LogEvent(Channel, 0, $"Odmówiono zmiany nazwy punktów użytkownikowi {Name} (Użytkownik wykluczony czasOwO)");
                 return;
             }
-            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.headmod)
+            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.mod)
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono zmiany nazwy punktów użytkownikowi {Name} (Brak uprawnień)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie posiadasz odpowiednich uprawnień");
@@ -375,7 +375,7 @@ namespace PyRZyBot_2._0
                 Bot.LogEvent(Channel, 0, $"Odmówiono zmiany poziomu feedbacku użytkownikowi {Name} (Użytkownik wykluczony czasOwO)");
                 return;
             }
-            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.headmod)
+            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.mod)
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono zmiany poziomu feedbacku użytkownikowi {Name} (Brak uprawnień)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie posiadasz odpowiednich uprawnień");

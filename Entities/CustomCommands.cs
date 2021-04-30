@@ -11,8 +11,8 @@ namespace PyRZyBot_2._0.Entities
     class CustomCommands
     {
         public static List<TimedCommands> Timers = new List<TimedCommands>();
-        public static List<int> Weights = new List<int> { 8, 8, 3, 1, 1 };
-        public static List<string> Responses = new List<string> { "Tak", "Nie", "Oj nie wiem nie wiem", "xD", "Paaaaanie, bota o to pytasz? litości... 🙄" };
+        public static List<int> Weights = new List<int> { 10, 10, 3, 1, 1 };
+        public static List<string> Responses = new List<string> { "Tak", "Nie", "Oj nie wiem nie wiem", "Paaaaanie, bota o to pytasz? litości... 🙄", "xD" };
 
         public static void Command(string Channel, string Name, List<string> Arguments)
         {
@@ -188,7 +188,7 @@ namespace PyRZyBot_2._0.Entities
                 if (!Command.IsEnabled)
                 {
                     Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy {Command.CommandName} użytkownikowi {Name} (Komenda jest wyłączona)");
-                    Bot.SendMessage(Channel, 0, true, $"@{Name}, Komenda {Command.CommandName} jest wyłączona)");
+                    //Bot.SendMessage(Channel, 0, true, $"@{Name}, Komenda {Command.CommandName} jest wyłączona)");
                     return false;
                 }//CZY KOMENDA JEST WŁĄCZONA
                 if (Database.GetAccessLevel(Channel, Name) < Command.AccessLevel)
@@ -295,7 +295,7 @@ namespace PyRZyBot_2._0.Entities
         }
         static string SwapVariables(ChannelCommands Command, string Name)
         {
-            string Count = $"{++Command.TimesUsed}";
+            string Count = $"{Command.TimesUsed}";
             return Command.Response.Replace("{count}", Count)
                                    .Replace("{user}", Name);
         }

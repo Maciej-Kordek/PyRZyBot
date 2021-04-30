@@ -23,16 +23,26 @@ namespace PyRZyBot_2._0
                 Bot.LogEvent(Channel, 0, $"Odmówiono użycia komendy !title użytkownikowi {Name} (Użytkownik wykluczony czasOwO)");
                 return;
             }
-            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.trusted)
+            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.mod)
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !title użytkownikowi {Name} (Brak uprawnień)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie posiadasz odpowiednich uprawnień");
                 return;
             }
-            var ChannelInfo = Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
-            string Game = ChannelInfo.Result.Game;
-            string Title = ChannelInfo.Result.Status;
-            string ChannelId = ChannelInfo.Result.Id;
+
+            string Game = string.Empty;
+            string Title = string.Empty;
+            string ChannelId = string.Empty;
+
+            var Task = System.Threading.Tasks.Task.Run(async () =>
+            {
+                var ChannelInfo = await Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
+                Game = ChannelInfo.Game;
+                Title = ChannelInfo.Status;
+                ChannelId = ChannelInfo.Id;
+            });
+            Task.Wait();
+
             switch (Arguments.Count())
             {
                 case 1:
@@ -50,8 +60,8 @@ namespace PyRZyBot_2._0
 
                         try
                         {
-                            var Task = System.Threading.Tasks.Task.Run(async () => { await Bot.APIs[Channel].V5.Channels.UpdateChannelAsync(ChannelId, Title, Game); });
-                            Task.Wait();
+                            var Task2 = System.Threading.Tasks.Task.Run(async () => { await Bot.APIs[Channel].V5.Channels.UpdateChannelAsync(ChannelId, Title, Game); });
+                            Task2.Wait();
                             Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono tytuł na: {Title}");
                         }
                         catch
@@ -75,16 +85,26 @@ namespace PyRZyBot_2._0
                 Bot.LogEvent(Channel, 0, $"Odmówiono użycia komendy !game użytkownikowi {Name} (Użytkownik wykluczony czasOwO)");
                 return;
             }
-            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.trusted)
+            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.mod)
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !game użytkownikowi {Name} (Brak uprawnień)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie posiadasz odpowiednich uprawnień");
                 return;
             }
-            var ChannelInfo = Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
-            string Game = ChannelInfo.Result.Game;
-            string Title = ChannelInfo.Result.Status;
-            string ChannelId = ChannelInfo.Result.Id;
+
+            string Game = string.Empty;
+            string Title = string.Empty;
+            string ChannelId = string.Empty;
+
+            var Task = System.Threading.Tasks.Task.Run(async () =>
+            {
+                var ChannelInfo = await Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
+                Game = ChannelInfo.Game;
+                Title = ChannelInfo.Status;
+                ChannelId = ChannelInfo.Id;
+            });
+            Task.Wait();
+
             switch (Arguments.Count())
             {
                 case 1:
@@ -102,14 +122,22 @@ namespace PyRZyBot_2._0
 
                         try
                         {
-                            var Task = System.Threading.Tasks.Task.Run(async () => { await Bot.APIs[Channel].V5.Channels.UpdateChannelAsync(ChannelId, Title, Game); });
-                            Task.Wait();
+                            var Task2 = System.Threading.Tasks.Task.Run(async () =>
+                            {
+                                var Result = await Bot.APIs[Channel].Helix.Games.GetGamesAsync(gameNames: new List<string> { Game });
+                                if (Result.Games.Length == 0)
+                                    throw new Exception();
+
+                                Game = Result.Games[0].Name;
+                                await Bot.APIs[Channel].V5.Channels.UpdateChannelAsync(ChannelId, Title, Result.Games[0].Name);
+                            });
+                            Task2.Wait();
                             Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono grę na: {Game}");
                         }
                         catch
                         {
                             Bot.LogEvent(Channel, 2, $"Zmiana gry nie powiodła się");
-                            Bot.SendMessage(Channel, 1, false, $"@{Name}, Nie udało się zmienić gry");
+                            Bot.SendMessage(Channel, 1, false, $"@{Name}, Nie udało się znaleźć gry");
                         }
                     }
                     return;
@@ -182,7 +210,7 @@ namespace PyRZyBot_2._0
                 Bot.LogEvent(Channel, 0, $"Odmówiono użycia komendy !next użytkownikowi {Name} (Użytkownik wykluczony czasOwO)");
                 return;
             }
-            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.trusted)
+            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.mod)
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !next użytkownikowi {Name} (Brak uprawnień)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie posiadasz odpowiednich uprawnień");
@@ -210,15 +238,19 @@ namespace PyRZyBot_2._0
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie ustawiono następnego tytułu i/lub gry");
                 return;
             }
-            var ChannelInfo = Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
-            string Game = ChannelInfo.Result.Game;
-            string Title = ChannelInfo.Result.Status;
-            string ChannelId = ChannelInfo.Result.Id;
-            LastGame[Channel] = Game;
-            LastTitle[Channel] = Title;
+
             try
             {
-                var Task = System.Threading.Tasks.Task.Run(async () => { await Bot.APIs[Channel].V5.Channels.UpdateChannelAsync(ChannelId, NextTitle, NextGame); });
+                var Task = System.Threading.Tasks.Task.Run(async () =>
+                {
+                    var ChannelInfo = await Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
+                    string Game = ChannelInfo.Game;
+                    string Title = ChannelInfo.Status;
+                    string ChannelId = ChannelInfo.Id;
+                    LastGame[Channel] = Game;
+                    LastTitle[Channel] = Title;
+                    await Bot.APIs[Channel].V5.Channels.UpdateChannelAsync(ChannelId, NextTitle, NextGame);
+                });
                 Task.Wait();
                 Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono tytuł i grę na: {NextTitle} | {NextGame}");
             }
@@ -242,7 +274,7 @@ namespace PyRZyBot_2._0
                 Bot.LogEvent(Channel, 0, $"Odmówiono użycia komendy !next undo użytkownikowi {Name} (Użytkownik wykluczony czasOwO)");
                 return;
             }
-            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.trusted)
+            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.mod)
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !next undo użytkownikowi {Name} (Brak uprawnień)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie posiadasz odpowiednich uprawnień");
@@ -254,14 +286,19 @@ namespace PyRZyBot_2._0
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Brak ostatniego tytułu i gry");
                 return;
             }
-            var ChannelInfo = Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
-            string Game = ChannelInfo.Result.Game;
-            string Title = ChannelInfo.Result.Status;
-            string ChannelId = ChannelInfo.Result.Id;
 
             try
             {
-                var Task = System.Threading.Tasks.Task.Run(async () => { await Bot.APIs[Channel].V5.Channels.UpdateChannelAsync(ChannelId, LastTitle[Channel], LastGame[Channel]); });
+                string Game = string.Empty;
+                string Title = string.Empty;
+                var Task = System.Threading.Tasks.Task.Run(async () =>
+                {
+                    var ChannelInfo = await Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
+                    Game = ChannelInfo.Game;
+                    Title = ChannelInfo.Status;
+                    string ChannelId = ChannelInfo.Id;
+                    await Bot.APIs[Channel].V5.Channels.UpdateChannelAsync(ChannelId, LastTitle[Channel], LastGame[Channel]);
+                });
                 Task.Wait();
                 Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono tytuł i grę na: {LastTitle[Channel]} | {LastGame[Channel]}");
                 LastGame[Channel] = "";
@@ -295,7 +332,7 @@ namespace PyRZyBot_2._0
                 Bot.LogEvent(Channel, 0, $"Odmówiono użycia komendy !next title użytkownikowi {Name} (Użytkownik wykluczony czasOwO)");
                 return;
             }
-            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.trusted)
+            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.mod)
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !next title użytkownikowi {Name} (Brak uprawnień)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie posiadasz odpowiednich uprawnień");
@@ -307,6 +344,12 @@ namespace PyRZyBot_2._0
                 StringBuilder.Append($" {Arguments[i]}");
 
             string NextTitle = StringBuilder.ToString();
+
+            if (NextTitle.Length > 140)
+            {
+                Bot.SendMessage(Channel, 2, true, $"@{Name}, Tytuł jest za długi");
+                return;
+            }
 
             using (var context = new Database())
             {
@@ -329,7 +372,7 @@ namespace PyRZyBot_2._0
                 Bot.LogEvent(Channel, 0, $"Odmówiono użycia komendy !next title użytkownikowi {Name} (Użytkownik wykluczony czasOwO)");
                 return;
             }
-            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.trusted)
+            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.mod)
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !next title użytkownikowi {Name} (Brak uprawnień)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie posiadasz odpowiednich uprawnień");
@@ -354,7 +397,7 @@ namespace PyRZyBot_2._0
                 Bot.LogEvent(Channel, 0, $"Odmówiono użycia komendy !next game użytkownikowi {Name} (Użytkownik wykluczony czasOwO)");
                 return;
             }
-            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.trusted)
+            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.mod)
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !next game użytkownikowi {Name} (Brak uprawnień)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie posiadasz odpowiednich uprawnień");
@@ -367,14 +410,26 @@ namespace PyRZyBot_2._0
 
             string NextGame = StringBuilder.ToString();
 
-            using (var context = new Database())
+            var Task = System.Threading.Tasks.Task.Run(async () =>
             {
-                var ChannelNextTitle = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "NextGame");
-                ChannelNextTitle.Value = NextGame;
-                context.Update(ChannelNextTitle);
-                context.SaveChanges();
-            }
-            Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono następną grę na: {NextGame}");
+                var Result = await Bot.APIs[Channel].Helix.Games.GetGamesAsync(gameNames: new List<string> { NextGame });
+                if (Result.Games.Length == 0)
+                {
+                    Bot.LogEvent(Channel, 2, $"Zmiana następnej gry nie powiodła się");
+                    Bot.SendMessage(Channel, 1, false, $"@{Name}, Nie udało się znaleźć gry");
+                    return;
+                }
+                NextGame = Result.Games[0].Name;
+                Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono następną grę na: {NextGame}");
+                using (var context = new Database())
+                {
+                    var ChannelNextTitle = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "NextGame");
+                    ChannelNextTitle.Value = NextGame;
+                    context.Update(ChannelNextTitle);
+                    context.SaveChanges();
+                }
+            });
+            Task.Wait();
         }
         static void DisplayNextGame(string Channel, string Name)
         {
@@ -388,7 +443,7 @@ namespace PyRZyBot_2._0
                 Bot.LogEvent(Channel, 0, $"Odmówiono użycia komendy !next game użytkownikowi {Name} (Użytkownik wykluczony czasOwO)");
                 return;
             }
-            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.trusted)
+            if (Database.GetAccessLevel(Channel, Name) < (int)AccessLevels.mod)
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !next game użytkownikowi {Name} (Brak uprawnień)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie posiadasz odpowiednich uprawnień");

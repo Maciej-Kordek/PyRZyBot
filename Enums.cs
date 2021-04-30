@@ -20,9 +20,8 @@ namespace PyRZyBot_2._0
         vip,//3
         trusted,//4
         mod,//5
-        headmod,//6
-        broadcaster,//7
-        dev//8
+        broadcaster,//6
+        dev//7
     }
     public enum FeedbackLevels
     {

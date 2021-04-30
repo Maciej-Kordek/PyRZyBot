@@ -26,9 +26,10 @@ namespace PyRZyBot_2._0
         public static Dictionary<string, TwitchAPI> APIs = new Dictionary<string, TwitchAPI>();
         internal void Connect()
         {
-            Program.StatusMessage("Włączanie - 0% ");
+            Program.StatusMessage("Włączanie - krok 1/4");
             using (var context = new Database())
             {
+                Program.StatusMessage("Włączanie - krok 2/4");
                 ConnectionCredentials credentials = new ConnectionCredentials(
                     context.ChannelInfo.FirstOrDefault(x => x.Channel == "pyrzybot" && x.Info == "BotName").Value,
                     context.ChannelInfo.FirstOrDefault(x => x.Channel == "pyrzybot" && x.Info == "BotToken").Value);
@@ -42,27 +43,37 @@ namespace PyRZyBot_2._0
                 client = new TwitchClient(customClient);
                 client.Initialize(credentials, Channels);
 
-                int i = 0;
+                Program.StatusMessage("Włączanie - krok 3/4");
                 foreach (var Channel in Channels)
                 {
-                    i += 25;
-                    Program.StatusMessage($"Włączanie - {i}%");
                     var API = new TwitchAPI();
-                    API.Settings.ClientId = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "ClientId").Value;
-                    API.Settings.AccessToken = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "AccessToken").Value;
-                    APIs.Add(Channel, API);
+                    var ClientId = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "ClientId");
+                    if (ClientId != null)
+                        API.Settings.ClientId = ClientId.Value;
+
+                    var AccessToken = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "AccessToken");
+                    if (AccessToken != null)
+                        API.Settings.AccessToken = AccessToken.Value;
+
+                    if (ClientId != null && AccessToken != null)
+                        APIs.Add(Channel, API);
 
                     PubSub = new TwitchPubSub();
-                    PubSub.ListenToRewards(context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "ChannelId").Value);
-                    PubSub.Connect();
+                    var ChannelId = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "ChannelId");
 
-                    PubSub.OnRewardRedeemed += OnRewardRedeemed;
-                    PubSub.OnPubSubServiceConnected += OnPubSubServiceConnected;
+                    if (ChannelId != null)
+                    {
+                        PubSub.ListenToRewards(ChannelId.Value);
+                        PubSub.Connect();
+
+                        PubSub.OnRewardRedeemed += OnRewardRedeemed;
+                        PubSub.OnPubSubServiceConnected += OnPubSubServiceConnected;
+                    }
                 }
             }
             Monitor = new LiveStreamMonitorService(APIs["kyrzy"]);
             Monitor.SetChannelsByName(Channels);
-            Program.StatusMessage("Włączanie - 75%");
+            Program.StatusMessage("Włączanie - krok 4/4");
 
             client.OnMessageReceived += OnMessageReceived;
             client.OnUserJoined += OnUserJoined;
@@ -82,10 +93,10 @@ namespace PyRZyBot_2._0
             Program.StatusMessage("Wyłączanie");
             using (var context = new Database())
             {
-                var ChannelsOnline = context.ChannelInfo.Where(x => x.Info == "IsStreaming" && x.Value == "1").ToList();
-                if (ChannelsOnline.Count() > 0)
+                var ChannelsStreaming = context.ChannelInfo.Where(x => x.Info == "IsStreaming" && x.Value == "1").ToList();
+                if (ChannelsStreaming.Count() > 0)
                 {
-                    ChannelsOnline.ForEach(x =>
+                    ChannelsStreaming.ForEach(x =>
                     {
                         x.Value = "0";
                         string Channel = x.Channel;
@@ -99,7 +110,7 @@ namespace PyRZyBot_2._0
                             });
                             context.UpdateRange(UsersOnline);
                         }
-                        context.UpdateRange(ChannelsOnline);
+                        context.UpdateRange(ChannelsStreaming);
                     });
                 }
 
@@ -118,12 +129,21 @@ namespace PyRZyBot_2._0
                 }
                 context.SaveChanges();
             }
-            APIs.Clear();
-            client.Disconnect();
-            PubSub.Disconnect();
-            Monitor.Stop();
+
+            if (APIs != null)
+                APIs.Clear();
+
+            if (client != null)
+                client.Disconnect();
+
+            if (PubSub != null)
+                PubSub.Disconnect();
+
+            if (Monitor != null)
+                Monitor.Stop();
+
             IsConnected = false;
-            Program.StatusMessage("Wyłączono\n");
+            Program.StatusMessage("Wyłączono");
         }
 
         private void OnMessageReceived(object sender, OnMessageReceivedArgs e)
@@ -135,6 +155,9 @@ namespace PyRZyBot_2._0
             bool IsBroadcaster = e.ChatMessage.IsBroadcaster;
             bool IsMod = e.ChatMessage.IsModerator;
             bool IsVip = e.ChatMessage.IsVip;
+
+            using (var context = new Database())
+                if (context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel) == null) { return; }
 
             if (Name.ToLower() == "nightbot") { return; }
 
@@ -249,9 +272,13 @@ namespace PyRZyBot_2._0
 
             using (var context = new Database())
             {
-                var IsStreaming = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "IsStreaming");
-                IsStreaming.Value = "1";
-                context.Update(IsStreaming);
+                var ChannelStreaming = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "IsStreaming");
+                if (ChannelStreaming != null)
+                {
+                    ChannelStreaming.Value = "1";
+                    context.Update(ChannelStreaming);
+                }
+
                 var Users = context.ChatUsers.Where(x => x.IsOnline && x.Channel == Channel).ToList();
                 if (Users.Count != 0)
                 {
@@ -271,18 +298,21 @@ namespace PyRZyBot_2._0
 
             using (var context = new Database())
             {
-                var IsStreaming = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "IsStreaming");
-                IsStreaming.Value = "0";
-                context.Update(IsStreaming);
-                var Users = context.ChatUsers.Where(x => x.IsOnline && x.Channel == Channel).ToList();
-                if (Users.Count != 0)
+                var ChannelStreaming = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "IsStreaming");
+                if (ChannelStreaming != null)
                 {
-                    Users.ForEach(x =>
+                    ChannelStreaming.Value = "0";
+                    context.Update(ChannelStreaming);
+                }
+                var UsersOnline = context.ChatUsers.Where(x => x.IsOnline && x.Channel == Channel).ToList();
+                if (UsersOnline.Count != 0)
+                {
+                    UsersOnline.ForEach(x =>
                     {
                         TimeSpan Watchtime = DateTime.Now - x.GotOnline;
                         x.Watchtime += (int)Watchtime.TotalMinutes;
                     });
-                    context.UpdateRange(Users);
+                    context.UpdateRange(UsersOnline);
                 }
                 context.SaveChanges();
             }
@@ -324,8 +354,8 @@ namespace PyRZyBot_2._0
                 if (User == null) { return; }
                 User.IsOnline = false;
 
-                var IsStreaming = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "IsStreaming");
-                if (IsStreaming.Value == "1")
+                var IsChannelStreaming = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "IsStreaming");
+                if (IsChannelStreaming != null && IsChannelStreaming.Value == "1")
                 {
                     TimeSpan Watchtime = DateTime.Now - User.GotOnline;
                     User.Watchtime += (int)Watchtime.TotalMinutes;
@@ -342,7 +372,12 @@ namespace PyRZyBot_2._0
 
             using (var context = new Database())
             {
-                int CurrentFeedbackLevel = int.Parse(context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "ChatFeedback").Value);
+                var ChannelFeedbackLevel = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "ChatFeedback");
+                int CurrentFeedbackLevel = 1;
+
+                if (ChannelFeedbackLevel != null)
+                    CurrentFeedbackLevel = int.Parse(ChannelFeedbackLevel.Value);
+
                 if (CurrentFeedbackLevel + Priority < 2)
                     return;
             }
@@ -383,7 +418,16 @@ namespace PyRZyBot_2._0
                         }
                         break;
                     default:
-                        ChannelColor = ConsoleColor.White;
+                        {
+                            ChannelColor = ConsoleColor.White;
+                            if (BotColor != "Green")
+                            {
+                                client.SendMessage(Channel, "/color Green");
+                                Info.Value = "Green";
+                                context.Update(Info);
+                                context.SaveChanges();
+                            }
+                        }
                         break;
                 }
             }

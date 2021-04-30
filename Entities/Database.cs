@@ -229,7 +229,7 @@ namespace PyRZyBot_2._0.Entities
         }
         public static bool IsNicknamelegal(string Channel, string Nickname)
         {
-            string _Pattern = @"^[a-zA-Z0-9][_a-zA-Z0-9 ]{3,24}$";
+            string _Pattern = @"^[\p{L}0-9][_\p{L}0-9 ]{3,24}$";
             var Match = Regex.Match(Nickname, _Pattern);
             return Match.Success;
         }

@@ -17,6 +17,8 @@ namespace PyRZyBot_2._0.Entities
         public DbSet<ChannelCommands> ChannelCommands { get; set; }
         public DbSet<Aliases> Aliases { get; set; }
 
+        public DbSet<Quotes> Quotes { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<ChatUsers>()

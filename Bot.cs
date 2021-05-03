@@ -189,7 +189,7 @@ namespace PyRZyBot_2._0
             switch (Arguments[0].ToLower())
             {
                 case "!set":
-                    InternalCommands_Set.Set(Channel, Name, Arguments);
+                    InternalCommands_Set.SetMenu(Channel, Name, Arguments);
                     break;
 
                 case "!command":

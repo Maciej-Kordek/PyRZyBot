@@ -10,7 +10,7 @@ namespace PyRZyBot_2._0
 {
     class InternalCommands_Set
     {
-        public static void Set(string Channel, string Name, List<string> Arguments)
+        public static void SetMenu(string Channel, string Name, List<string> Arguments)
         {
             if (Arguments.Count() < 1) { return; }
 

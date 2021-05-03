@@ -70,7 +70,7 @@ namespace PyRZyBot_2._0
             }
         }
 
-        public static void PointsCommands(string Channel, string Name, List<string> Arguments)
+        public static void PointsMenu(string Channel, string Name, List<string> Arguments)
         {
             switch (Arguments.Count)
             {

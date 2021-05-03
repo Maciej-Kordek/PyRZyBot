@@ -77,7 +77,7 @@ namespace PyRZyBot_2._0.Entities
                     Bot.SendMessage(Channel, 0, false, $"@{Name}, Ta nazwa jest zajęta przez alias komendy {Alias.ChannelCommands.CommandName}");
                     return;
                 }
-                string Response = "";
+                string Response = string.Empty;
                 if (Arguments.Count > 3)
                 {
                     for (int i = 3; i < Arguments.Count; i++)
@@ -225,7 +225,7 @@ namespace PyRZyBot_2._0.Entities
             switch (CommandName)
             {
                 case "!punkty":
-                    Points.PointsCommands(Channel, Name, Arguments);
+                    Points.PointsMenu(Channel, Name, Arguments);
                     break;
 
                 case "!ranking":
@@ -250,6 +250,10 @@ namespace PyRZyBot_2._0.Entities
 
                 case "!anuluj":
                     Duels.CancelDuel(Channel, Name, Arguments);
+                    break;
+
+                case "!cytat":
+                    Quotes.QuotesMenu(Channel, Name, Arguments);
                     break;
 
                 case "czy":

@@ -112,9 +112,14 @@ namespace PyRZyBot_2._0
                     return;
                 }
                 int Points = User.ChatUsers_S.Points;
-                var Leaderboard = context.ChatUsers.Where(x => x.Channel == Channel).OrderByDescending(x => x.ChatUsers_S.Points).Select(x => x.Name).ToList();
+                var Leaderboard = context.ChatUsers.Where(x => x.Channel == Channel && x.ChatUsers_S.ToRank == true).OrderByDescending(x => x.ChatUsers_S.Points).Select(x => x.Name).ToList();
                 int Rank = Leaderboard.IndexOf(Name);
-                Bot.SendMessage(Channel, 2, true, $"@{Name}, masz {PointsEnding(Channel, Points)} i jesteś na {++Rank}. miejscu!");
+                string Message = $"@{Name}, masz {PointsEnding(Channel, Points)}";
+
+                if (Rank != -1)
+                    Message += $" i jesteś na {++Rank}. miejscu!";
+
+                Bot.SendMessage(Channel, 2, true, Message);
             }
         }
         static void CheckOthersPoints(string Channel, string Name, List<string> Arguments)
@@ -141,9 +146,14 @@ namespace PyRZyBot_2._0
                     return;
                 }
                 int Points = User.ChatUsers_S.Points;
-                var Leaderboard = context.ChatUsers.Where(x => x.Channel == Channel).OrderByDescending(x => x.ChatUsers_S.Points).Select(x => x.Name).ToList();
+                var Leaderboard = context.ChatUsers.Where(x => x.Channel == Channel && x.ChatUsers_S.ToRank == true).OrderByDescending(x => x.ChatUsers_S.Points).Select(x => x.Name).ToList();
                 int Rank = Leaderboard.IndexOf(User.Name);
-                Bot.SendMessage(Channel, 2, true, $"@{Name}, {User.Name} ma {PointsEnding(Channel, Points)} i jest na {++Rank}. miejscu!");
+                string Message = $"@{Name}, {User.Name} ma {PointsEnding(Channel, Points)}";
+
+                if (Rank != -1)
+                    Message += $" i jest na {++Rank}. miejscu!";
+
+                Bot.SendMessage(Channel, 2, true, Message);
             }
         }
         static void AddPoints() { }
@@ -154,7 +164,7 @@ namespace PyRZyBot_2._0
         {
             using (var context = new Database())
             {
-                var Ranking = context.ChatUsers.Where(x => x.Channel == Channel).OrderByDescending(x => x.ChatUsers_S.Points).Select(x => new { Name = x.Name, Points = x.ChatUsers_S.Points }).ToList();
+                var Ranking = context.ChatUsers.Where(x => x.Channel == Channel && x.ChatUsers_S.ToRank == true).OrderByDescending(x => x.ChatUsers_S.Points).Select(x => new { Name = x.Name, Points = x.ChatUsers_S.Points }).ToList();
                 List<string> RankMessage = new List<string>();
                 int Nr = 0;
                 foreach (var User in Ranking)

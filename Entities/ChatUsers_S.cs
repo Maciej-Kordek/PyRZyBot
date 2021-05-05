@@ -16,6 +16,7 @@ namespace PyRZyBot_2._0.Entities
             Streak = 0;
             MaxWinStreak = 0;
             MaxLoseStreak = 0;
+            ToRank = true;
             DuelId = 0;
             MaxDuelBet = -1;
             AcceptsDuels = true;
@@ -31,6 +32,7 @@ namespace PyRZyBot_2._0.Entities
         public int Streak { get; set; }
         public int MaxWinStreak { get; set; }
         public int MaxLoseStreak { get; set; }
+        public bool ToRank {get; set; }
         public int DuelId { get; set; }
         public int MaxDuelBet { get; set; }
         public bool AcceptsDuels { get; set; }

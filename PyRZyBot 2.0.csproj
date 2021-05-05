@@ -4,6 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>PyRZyBot_2._0</RootNamespace>
+    <ApplicationIcon>PyRZy.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

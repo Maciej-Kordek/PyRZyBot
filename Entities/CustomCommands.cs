@@ -188,9 +188,28 @@ namespace PyRZyBot_2._0.Entities
                 if (!Command.IsEnabled)
                 {
                     Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy {Command.CommandName} użytkownikowi {Name} (Komenda jest wyłączona)");
-                    //Bot.SendMessage(Channel, 0, true, $"@{Name}, Komenda {Command.CommandName} jest wyłączona)");
+                    //Bot.SendMessage(Channel, 0, false, $"@{Name}, Komenda {Command.CommandName} jest wyłączona)");
                     return false;
                 }//CZY KOMENDA JEST WŁĄCZONA
+                if (!string.IsNullOrEmpty(Command.GameSpecific))
+                {
+                    string Game = string.Empty;
+
+                    var Task = System.Threading.Tasks.Task.Run(async () =>
+                    {
+                        var ChannelInfo = await Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
+                        Game = ChannelInfo.Game;
+                    });
+                    Task.Wait();
+
+                    if(Game != Command.GameSpecific)
+                    {
+                        Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy {Command.CommandName} użytkownikowi {Name} (Komenda powiązana z grą: {Command.GameSpecific})");
+                        //Bot.SendMessage(Channel, 0, false, $"@{Name}, Komenda jest powiązana z grą: {Command.GameSpecific}");
+                        return false;
+                    }//CZY POWIĄZANA GRA JEST OBECNIE STREAMOWANA
+                }//CZY KOMENDA JEST POWIĄZANA Z GRĄ
+
                 if (Database.GetAccessLevel(Channel, Name) < Command.AccessLevel)
                 {
                     Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy {Command.CommandName} użytkownikowi {Name} (Brak uprawnień)");
@@ -243,7 +262,7 @@ namespace PyRZyBot_2._0.Entities
                 case "!nie":
                     Duels.DenyDuel(Channel, Name, Arguments);
                     break;
-                
+
                 case "!staty":
                     Duels.Stats(Channel, Name, Arguments);
                     break;

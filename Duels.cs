@@ -223,7 +223,7 @@ namespace PyRZyBot_2._0
                 if (User.ChatUsers_S.DuelId == 0)
                 {
                     Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !tak użytkownikowi {Name} (Użytkownik nie był wyzwany na pojedynek)");
-                    Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie byłeś wyzwany na żaden pojedynek");
+                    Bot.SendMessage(Channel, 0, false, $"@{Name}, {Enums.GenderSpecific(Channel, Name, "Nie byłeś")} wyzwany na żaden pojedynek");
                     return;
                 }
 

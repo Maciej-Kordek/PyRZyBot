@@ -130,6 +130,9 @@ namespace PyRZyBot_2._0
                 context.SaveChanges();
             }
 
+            foreach (var Channel in Channels)
+                CustomCommands.StopTimers(Channel);
+
             if (APIs != null)
                 APIs.Clear();
 
@@ -259,6 +262,10 @@ namespace PyRZyBot_2._0
             if (Reward.ToLower().Contains(RedeemOn))
             {
                 Points.OnPointsRedeemed(Name, Cost, Channel);
+            }
+            if (Reward.ToLower().Contains("timeout"))
+            {
+                SendMessage(Channel, 2, false, $"/timeout @{Name} 69");
             }
         }
 

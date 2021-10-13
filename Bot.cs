@@ -463,7 +463,7 @@ namespace PyRZyBot_2._0
             if (CurrentFeedbackLevel + Priority < 2)
                 return;
 
-            switch (Channel)
+            switch (Channel.ToLower())
             {
                 case "kyrzy":
                     ChannelColor = ConsoleColor.Blue;

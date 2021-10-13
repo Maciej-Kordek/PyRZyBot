@@ -28,7 +28,7 @@ namespace PyRZyBot_2._0
         public int PointsPool { get; set; }
         public DateTime Expiration { get; set; }
 
-        static Dictionary<int, Duels> DuelList = new Dictionary<int, Duels>();
+        public static Dictionary<int, Duels> DuelList = new Dictionary<int, Duels>();
 
         internal static void StartDuel(string Channel, string Name, List<string> Arguments)
         {
@@ -58,7 +58,7 @@ namespace PyRZyBot_2._0
                     return;
                 }
 
-                if (Database.IsTimeouted(Name, Channel))
+                if (Database.IsTimeouted(Defender.Name, Channel))
                 {
                     Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !walcz użytkownikowi {Name} (Oznaczony użytkownik wykluczony czasOwO)");
                     Bot.SendMessage(Channel, 1, false, $"@{Name}, {Database.GetNickname(Channel, Defender.Name)} jest wykluczony czasOwO");
@@ -223,7 +223,7 @@ namespace PyRZyBot_2._0
                 if (User.ChatUsers_S.DuelId == 0)
                 {
                     Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !tak użytkownikowi {Name} (Użytkownik nie był wyzwany na pojedynek)");
-                    Bot.SendMessage(Channel, 0, false, $"@{Name}, {Enums.GenderSpecific(Channel, Name, "Nie byłeś")} wyzwany na żaden pojedynek");
+                    Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie {Enums.GenderSpecific(Channel, Name, "byłeś wyzwany")} na żaden pojedynek");
                     return;
                 }
 
@@ -429,7 +429,7 @@ namespace PyRZyBot_2._0
 
                 if (User.ChatUsers_S.DuelId == 0)
                 {
-                    Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !nie użytkownikowi {Name} (Użytkownik nie był wyzwany na pojedynek)");
+                    Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !anuluj użytkownikowi {Name} (Użytkownik nie był wyzwany na pojedynek)");
                     Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie {Enums.GenderSpecific(Channel, Name, "byłeś wyzwany")} na żaden pojedynek");
                     return;
                 }
@@ -459,7 +459,7 @@ namespace PyRZyBot_2._0
 
                 if (Duel.Expiration < DateTime.Now)
                 {
-                    Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !nie użytkownikowi {Name} (Pojedynek wygasł)");
+                    Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !anuluj użytkownikowi {Name} (Pojedynek wygasł)");
                     Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie {Enums.GenderSpecific(Channel, Name, "byłeś wyzwany")} na żaden pojedynek");
                     return;
                 }

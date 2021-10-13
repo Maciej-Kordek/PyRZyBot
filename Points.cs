@@ -93,6 +93,10 @@ namespace PyRZyBot_2._0
                             RemovePoints();
                             return;
 
+                        case "give":
+                            GivePoints(Channel, Name, Arguments);
+                            return;
+
                         default:
                             CheckOthersPoints(Channel, Name, Arguments);
                             return;
@@ -159,6 +163,69 @@ namespace PyRZyBot_2._0
         static void AddPoints() { }
         static void SetPoints() { }
         static void RemovePoints() { }
+        static void GivePoints(string Channel, string Name, List<string> Arguments)
+        {
+            if(Arguments.Count != 4)
+            {
+                Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !points give użytkownikowi {Name} (Niewłaściwa liczba argumentów)");
+                Bot.SendMessage(Channel, 0, false, $"@{Name}, podano niewłaściwą liczbę argumentów (!points give <użytkownik> <kwota>)");
+                return;
+            }
+
+            using (var context = new Database())
+            {
+                var Gifter = context.ChatUsers.Where(x => x.Channel == Channel && x.Name == Name).Include(x => x.ChatUsers_S).FirstOrDefault();
+                var Reciever = context.ChatUsers.Where(x => x.Channel == Channel && x.Name == Arguments[1].Trim('@')).Include(x => x.ChatUsers_S).FirstOrDefault();
+
+                if (Gifter == null)
+                {
+                    Errors.UserNotFound((new System.Diagnostics.StackFrame(0, true)).GetFileLineNumber(),
+                        MethodBase.GetCurrentMethod().DeclaringType.Name, Name, Channel);
+                    Bot.SendMessage(Channel, 1, false, $"Wystąpił niespodziewany błąd!");
+                    return;
+                }
+
+                if (Reciever == null)
+                {
+                    Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !punkty give użytkownikowi {Name} (Nie znaleziono oznaczonego użytkownika)");
+                    Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie znaleziono użytkownika {Arguments[1].Trim('@')}");
+                    return;
+                }
+
+                if (Gifter.ChatUsers_S.DuelId != 0)
+                {
+                    if (!Duels.DuelList.ContainsKey(Gifter.ChatUsers_S.DuelId))
+                    {
+                        Errors.ElementNotFound((new System.Diagnostics.StackFrame(0, true)).GetFileLineNumber(),
+                            MethodBase.GetCurrentMethod().DeclaringType.Name, "Duel w liście walk", Channel);
+                        Gifter.ChatUsers_S.DuelId = 0;
+                        context.Update(Gifter);
+                        context.SaveChanges();
+                    }
+                    else
+                    {
+                        Duels Duel = Duels.DuelList[Gifter.ChatUsers_S.DuelId];
+
+                        if (Duel.Expiration < DateTime.Now)
+                        {
+                            Duels.DuelList.Remove(Gifter.ChatUsers_S.DuelId);
+                            Gifter.ChatUsers_S.DuelId = 0;
+                            context.Update(Gifter);
+                            context.SaveChanges();
+                        }
+                        else
+                        {
+
+                            Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !punkty give użytkownikowi {Name} (Użytkownik zapisany na walkę)");
+                            Bot.SendMessage(Channel, 0, false, $"@{Name}, Możesz nie mieć wystarczająco pyr po pojedynku");
+                            return;
+                        }
+                    }
+                }
+
+
+            }
+        }
 
         public static void Leaderboard(string Channel)
         {

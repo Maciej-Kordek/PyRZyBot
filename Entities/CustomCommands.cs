@@ -267,10 +267,6 @@ namespace PyRZyBot_2._0.Entities
                     Duels.Stats(Channel, Name, Arguments);
                     break;
 
-                case "!anuluj":
-                    Duels.CancelDuel(Channel, Name, Arguments);
-                    break;
-
                 case "!cytat":
                     Quotes.QuotesMenu(Channel, Name, Arguments);
                     break;
@@ -326,7 +322,7 @@ namespace PyRZyBot_2._0.Entities
         {
             using (var context = new Database())
             {
-                var TimedCommands = context.ChannelCommands.Where(x => x.Channel == Channel && x.Timer != 0);
+                var TimedCommands = context.ChannelCommands.Where(x => x.Channel == Channel && x.Timer != 0 && x.IsEnabled == true);
 
                 foreach (var Command in TimedCommands)
                 {

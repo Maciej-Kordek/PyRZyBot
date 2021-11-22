@@ -197,15 +197,15 @@ namespace PyRZyBot_2._0.Entities
 
                     var Task = System.Threading.Tasks.Task.Run(async () =>
                     {
-                        var ChannelInfo = await Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
-                        Game = ChannelInfo.Game;
+                        var ChannelId = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "ChannelId").Info;
+                        var ChannelInfo = await Bot.APIs[Channel].Helix.Channels.GetChannelInformationAsync(ChannelId, Bot.APIs[Channel].Settings.AccessToken);
+                        Game = ChannelInfo.Data[0].GameName;
                     });
                     Task.Wait();
 
                     if(Game != Command.GameSpecific)
                     {
                         Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy {Command.CommandName} użytkownikowi {Name} (Komenda powiązana z grą: {Command.GameSpecific})");
-                        //Bot.SendMessage(Channel, 0, false, $"@{Name}, Komenda jest powiązana z grą: {Command.GameSpecific}");
                         return false;
                     }//CZY POWIĄZANA GRA JEST OBECNIE STREAMOWANA
                 }//CZY KOMENDA JEST POWIĄZANA Z GRĄ

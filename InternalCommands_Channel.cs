@@ -9,7 +9,7 @@ namespace PyRZyBot_2._0
     class InternalCommands_Channel
     {
         static Dictionary<string, string> LastTitle = new Dictionary<string, string> { { "kyrzy", "" }, { "ananieana", "" } };
-        static Dictionary<string, string> LastGame = new Dictionary<string, string> { { "kyrzy", "" }, { "ananieana", "" } };
+        static Dictionary<string, GameInfo> LastGame = new Dictionary<string, GameInfo> { { "kyrzy", new GameInfo() }, { "ananieana", new GameInfo() } };
 
         public static void Title(string Channel, string Name, List<string> Arguments)
         {
@@ -30,16 +30,20 @@ namespace PyRZyBot_2._0
                 return;
             }
 
-            string Game = string.Empty;
+            string Gameid = string.Empty;
             string Title = string.Empty;
             string ChannelId = string.Empty;
 
             var Task = System.Threading.Tasks.Task.Run(async () =>
             {
-                var ChannelInfo = await Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
-                Game = ChannelInfo.Game;
-                Title = ChannelInfo.Status;
-                ChannelId = ChannelInfo.Id;
+                using (var context = new Database())
+                {
+                    ChannelId = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "ChannelId").Value;
+                    var ChannelInfo = await Bot.APIs[Channel].Helix.Channels.GetChannelInformationAsync(ChannelId, Bot.APIs[Channel].Settings.AccessToken);
+                    Gameid = ChannelInfo.Data[0].GameId;
+                    Title = ChannelInfo.Data[0].Title;
+                    ChannelId = ChannelInfo.Data[0].BroadcasterId;
+                }
             });
             Task.Wait();
 
@@ -60,7 +64,12 @@ namespace PyRZyBot_2._0
 
                         try
                         {
-                            var Task2 = System.Threading.Tasks.Task.Run(async () => { await Bot.APIs[Channel].V5.Channels.UpdateChannelAsync(ChannelId, Title, Game); });
+                            var Task2 = System.Threading.Tasks.Task.Run(async () =>
+                            {
+                                await Bot.APIs[Channel].Helix.Channels.ModifyChannelInformationAsync(ChannelId,
+                                    new TwitchLib.Api.Helix.Models.Channels.ModifyChannelInformation.ModifyChannelInformationRequest { Title = Title, GameId = Gameid },
+                                    Bot.APIs[Channel].Settings.AccessToken);
+                            });
                             Task2.Wait();
                             Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono tytuł na: {Title}");
                         }
@@ -92,16 +101,20 @@ namespace PyRZyBot_2._0
                 return;
             }
 
-            string Game = string.Empty;
+            string GameName = string.Empty;
             string Title = string.Empty;
             string ChannelId = string.Empty;
 
             var Task = System.Threading.Tasks.Task.Run(async () =>
             {
-                var ChannelInfo = await Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
-                Game = ChannelInfo.Game;
-                Title = ChannelInfo.Status;
-                ChannelId = ChannelInfo.Id;
+                using (var context = new Database())
+                {
+                    ChannelId = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "ChannelId").Value;
+                    var ChannelInfo = await Bot.APIs[Channel].Helix.Channels.GetChannelInformationAsync(ChannelId, Bot.APIs[Channel].Settings.AccessToken);
+                    GameName = ChannelInfo.Data[0].GameName;
+                    Title = ChannelInfo.Data[0].Title;
+                    ChannelId = ChannelInfo.Data[0].BroadcasterId;
+                }
             });
             Task.Wait();
 
@@ -109,7 +122,7 @@ namespace PyRZyBot_2._0
             {
                 case 1:
                     {
-                        Bot.SendMessage(Channel, 2, true, $"@{Name}, Obecna gra to: {Game}");
+                        Bot.SendMessage(Channel, 2, true, $"@{Name}, Obecna gra to: {GameName}");
                     }
                     return;
                 default:
@@ -118,21 +131,24 @@ namespace PyRZyBot_2._0
                         for (int i = 2; i < Arguments.Count; i++)
                             StringBuilder.Append($" {Arguments[i]}");
 
-                        Game = StringBuilder.ToString();
+                        GameName = StringBuilder.ToString();
 
                         try
                         {
                             var Task2 = System.Threading.Tasks.Task.Run(async () =>
                             {
-                                var Result = await Bot.APIs[Channel].Helix.Games.GetGamesAsync(gameNames: new List<string> { Game });
+                                var Result = await Bot.APIs[Channel].Helix.Games.GetGamesAsync(gameNames: new List<string> { GameName });
                                 if (Result.Games.Length == 0)
                                     throw new Exception();
 
-                                Game = Result.Games[0].Name;
-                                await Bot.APIs[Channel].V5.Channels.UpdateChannelAsync(ChannelId, Title, Result.Games[0].Name);
+                                GameName = Result.Games[0].Name;
+                                var GameId = Result.Games[0].Id;
+                                await Bot.APIs[Channel].Helix.Channels.ModifyChannelInformationAsync(ChannelId,
+                                    new TwitchLib.Api.Helix.Models.Channels.ModifyChannelInformation.ModifyChannelInformationRequest { Title = Title, GameId = GameId },
+                                    Bot.APIs[Channel].Settings.AccessToken);
                             });
                             Task2.Wait();
-                            Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono grę na: {Game}");
+                            Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono grę na: {GameName}");
                         }
                         catch
                         {
@@ -243,20 +259,35 @@ namespace PyRZyBot_2._0
             {
                 var Task = System.Threading.Tasks.Task.Run(async () =>
                 {
-                    var ChannelInfo = await Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
-                    string Game = ChannelInfo.Game;
-                    string Title = ChannelInfo.Status;
-                    string ChannelId = ChannelInfo.Id;
-                    LastGame[Channel] = Game;
-                    LastTitle[Channel] = Title;
-                    await Bot.APIs[Channel].V5.Channels.UpdateChannelAsync(ChannelId, NextTitle, NextGame);
+                    using (var context = new Database())
+                    {
+                        var ChannelId = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "ChannelId").Value;
+                        var ChannelInfo = await Bot.APIs[Channel].Helix.Channels.GetChannelInformationAsync(ChannelId, Bot.APIs[Channel].Settings.AccessToken);
+                        string GameId = ChannelInfo.Data[0].GameId;
+                        string GameName = ChannelInfo.Data[0].GameName;
+                        string Title = ChannelInfo.Data[0].Title;
+                        LastGame[Channel].GameId = GameId;
+                        LastGame[Channel].GameName = GameName;
+                        LastTitle[Channel] = Title;
+
+                        var Result = await Bot.APIs[Channel].Helix.Games.GetGamesAsync(gameNames: new List<string> { NextGame });
+                        if (Result.Games.Length == 0)
+                            throw new Exception();
+
+                        var NextGameId = Result.Games[0].Id;
+
+                        await Bot.APIs[Channel].Helix.Channels.ModifyChannelInformationAsync(ChannelId,
+                                    new TwitchLib.Api.Helix.Models.Channels.ModifyChannelInformation.ModifyChannelInformationRequest { Title = NextTitle, GameId = NextGameId },
+                                    Bot.APIs[Channel].Settings.AccessToken);
+                    }
                 });
                 Task.Wait();
                 Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono tytuł i grę na: {NextTitle} | {NextGame}");
             }
             catch
             {
-                LastGame[Channel] = "";
+                LastGame[Channel].GameId = "";
+                LastGame[Channel].GameName = "";
                 LastTitle[Channel] = "";
                 Bot.LogEvent(Channel, 2, $"Zmiana tytułu i gry nie powiodła się");
                 Bot.SendMessage(Channel, 1, false, $"@{Name}, Nie udało się zmienić tytułu i gry");
@@ -280,7 +311,7 @@ namespace PyRZyBot_2._0
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Nie posiadasz odpowiednich uprawnień");
                 return;
             }
-            if (string.IsNullOrEmpty(LastTitle[Channel]) || string.IsNullOrEmpty(LastGame[Channel]))
+            if (string.IsNullOrEmpty(LastTitle[Channel]) || string.IsNullOrEmpty(LastGame[Channel].GameName))
             {
                 Bot.LogEvent(Channel, 1, $"Odmówiono użycia komendy !next undo użytkownikowi {Name} (Brak ostatniego tutułu i gry)");
                 Bot.SendMessage(Channel, 0, false, $"@{Name}, Brak ostatniego tytułu i gry");
@@ -289,26 +320,34 @@ namespace PyRZyBot_2._0
 
             try
             {
-                string Game = string.Empty;
+                string GameId = string.Empty;
+                string GameName = string.Empty;
                 string Title = string.Empty;
                 var Task = System.Threading.Tasks.Task.Run(async () =>
                 {
-                    var ChannelInfo = await Bot.APIs[Channel].V5.Channels.GetChannelAsync(Bot.APIs[Channel].Settings.AccessToken);
-                    Game = ChannelInfo.Game;
-                    Title = ChannelInfo.Status;
-                    string ChannelId = ChannelInfo.Id;
-                    await Bot.APIs[Channel].V5.Channels.UpdateChannelAsync(ChannelId, LastTitle[Channel], LastGame[Channel]);
+                    using (var context = new Database())
+                    {
+                        var ChannelId = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "ChannelId").Value;
+                        var ChannelInfo = await Bot.APIs[Channel].Helix.Channels.GetChannelInformationAsync(ChannelId, Bot.APIs[Channel].Settings.AccessToken);
+                        GameName = ChannelInfo.Data[0].GameName;
+                        GameId = ChannelInfo.Data[0].GameId;
+                        Title = ChannelInfo.Data[0].Title;
+                        await Bot.APIs[Channel].Helix.Channels.ModifyChannelInformationAsync(ChannelId,
+                                    new TwitchLib.Api.Helix.Models.Channels.ModifyChannelInformation.ModifyChannelInformationRequest { Title = LastTitle[Channel], GameId = LastGame[Channel].GameId },
+                                    Bot.APIs[Channel].Settings.AccessToken);
+                    }
                 });
                 Task.Wait();
-                Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono tytuł i grę na: {LastTitle[Channel]} | {LastGame[Channel]}");
-                LastGame[Channel] = "";
+                Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono tytuł i grę na: {LastTitle[Channel]} | {LastGame[Channel].GameName}");
+                LastGame[Channel].GameId = "";
+                LastGame[Channel].GameName = "";
                 LastTitle[Channel] = "";
                 using (var context = new Database())
                 {
                     var ChannelNextTitle = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "NextTitle");
                     var ChannelNextGame = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "NextGame");
                     ChannelNextTitle.Value = Title;
-                    ChannelNextGame.Value = Game;
+                    ChannelNextGame.Value = GameName;
                     context.Update(ChannelNextTitle);
                     context.Update(ChannelNextGame);
                     context.SaveChanges();
@@ -456,5 +495,11 @@ namespace PyRZyBot_2._0
 
             Bot.SendMessage(Channel, 2, true, $"@{Name}, Następna gra to: {NextGame}");
         }
+    }
+
+    class GameInfo
+    {
+        public string GameId { get; set; }
+        public string GameName { get; set; }
     }
 }

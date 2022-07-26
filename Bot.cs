@@ -47,6 +47,7 @@ namespace PyRZyBot_2._0
                 foreach (var Channel in Channels)
                 {
                     var API = new TwitchAPI();
+                    API.Settings.SkipDynamicScopeValidation = true;
                     var ClientId = context.ChannelInfo.FirstOrDefault(x => x.Channel == Channel && x.Info == "ClientId");
                     if (ClientId != null)
                         API.Settings.ClientId = ClientId.Value;

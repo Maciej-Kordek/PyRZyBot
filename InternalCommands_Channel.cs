@@ -150,7 +150,7 @@ namespace PyRZyBot_2._0
                             Task2.Wait();
                             Bot.SendMessage(Channel, 2, true, $"@{Name}, Zmieniono grę na: {GameName}");
                         }
-                        catch
+                        catch(Exception e)
                         {
                             Bot.LogEvent(Channel, 2, $"Zmiana gry nie powiodła się");
                             Bot.SendMessage(Channel, 1, false, $"@{Name}, Nie udało się znaleźć gry");
